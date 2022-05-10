@@ -1,0 +1,131 @@
+library(rvest)
+library(httr)
+library(xml2)
+require(RSelenium)
+require(wdman)
+library(dplyr)
+library(stringr)
+# Set working director to Box
+setwd("~/Box/")
+
+# Read in company list
+company <- read.csv("lgu/company.csv")
+db <- read.csv("lgu/company_db.csv")
+company_nolink <- filter(company, is.na(dnb_link))
+company <- filter(company, !is.na(dnb_link))
+company$id <- paste0("c", 1:nrow(company))
+company_nolink$id <- paste0("c", seq(from = nrow(company)+1, 
+                                     to = ((nrow(company)+1)+(nrow(company_nolink)-1)), 
+                                     by = 1))
+
+#http://joshuamccrain.com/tutorials/web_scraping_R_selenium.html
+rD <- rsDriver(browser = "firefox", port = 4445L)
+# This should open a firefox browser
+remDr <- rD[["client"]]
+
+company_db <- data.frame()
+for(i in 1:nrow(company)){
+  id <- company$id[i]
+  official_name <- company$official_name[i]
+  url <- company$dnb_link[i]
+  notes <- company$notes[i]
+  remDr$navigate(url)
+  Sys.sleep(5)
+  html <- remDr$getPageSource()[[1]]
+  html <- read_html(html)
+  name <- html %>% 
+    xml_find_all('//*[(@class = "company-profile-header-title")]') %>% 
+    html_text()
+  name <- ifelse(length(name) == 0, NA, name)
+  datapoints <- html %>% 
+    xml_find_all('//span[(@class = "company_data_point")]') 
+  dba <- datapoints %>% 
+    xml_find_all('../*[(@name = "company_name")]') %>% # This keeps me right in the datapoints 
+    xml_find_all('.//span') %>% 
+    html_text()
+  dba <- ifelse(length(dba) == 0, NA, dba)
+  description <- datapoints %>% 
+    xml_find_all('../*[(@name = "company_description")]') %>% # This keeps me right in the datapoints 
+    xml_find_all('.//span') %>% 
+    html_text()
+  description <- ifelse(length(description) == 0, NA, description)
+  industry <- datapoints %>% 
+    xml_find_all('../*[(@name = "industry_links")]') %>% # This keeps me right in the datapoints 
+    xml_find_all('.//span') %>% 
+    html_text() %>% 
+    str_remove_all("\\\n") %>% 
+    str_remove_all("\\s{2,}")
+  industry <- ifelse(length(industry) == 0, NA, industry)
+  industry <- industry[1]
+  details <- html %>% 
+    xml_find_all('//*[(@id = "company_profile_snapshot")]') %>% 
+    xml_find_all('.//*[(@class = "col-md-11")]')
+  address <- details %>% 
+    xml_find_all('.//*[(@name = "company_address")]') %>% 
+    xml_find_all('.//span[not(contains(@class, "arrow"))]') %>% 
+    html_text() %>% 
+    str_remove_all("\\\n") %>% 
+    str_remove_all("\\s{2,}")
+  address <- ifelse(length(address) == 0, NA, address)
+  website <- details %>% 
+    xml_find_all('.//*[(@name = "company_website")]') %>% 
+    html_nodes("a") %>% 
+    html_attr("href") 
+  website <- ifelse(length(website) == 0, NA, website)
+  employees <- details %>% 
+    xml_find_all('.//*[(@name = "employees_all_site")]') %>% 
+    xml_find_all('.//span[not(contains(@class, "reliability-tag"))]') %>% 
+    html_text() %>% 
+    trimws()
+  employees <- ifelse(length(employees) == 0, NA, employees)
+  revenue <- details %>% 
+    xml_find_all('.//*[(@name = "revenue_in_us_dollar")]') %>% 
+    xml_find_all('.//span[not(contains(@class, "reliability-tag"))]') %>% 
+    html_text() %>% 
+    str_remove_all("\\\n") %>% 
+    str_remove_all("\\s{2,}")
+  revenue <- ifelse(length(revenue) == 0, NA, revenue)
+  year_started <- details %>% 
+    xml_find_all('.//*[(@name = "year_started")]') %>% 
+    xml_find_all('.//span[not(contains(@class, "reliability-tag"))]') %>% 
+    html_text() %>% 
+    trimws()
+  year_started <- ifelse(length(year_started) == 0, NA, year_started)
+  year_inc <- details %>% 
+    xml_find_all('.//*[(@name = "year_incorporated")]') %>% 
+    xml_find_all('.//span[not(contains(@class, "reliability-tag"))]') %>% 
+    html_text() %>% 
+    trimws()
+  year_inc <- ifelse(length(year_inc) == 0, NA, year_inc)
+  esg_rank <- details %>% 
+    xml_find_all('.//*[(@name = "esgRank")]') %>% 
+    xml_find_all('.//span[not(contains(@class, "icon"))]') %>% 
+    html_text() %>% 
+    trimws()
+  esg_rank <- ifelse(length(esg_rank) == 0, NA, esg_rank)
+  df <- data.frame(id, official_name, name, dba, description, industry, address, website, 
+             employees, revenue, year_started, year_inc, esg_rank, notes)
+  company_db <- rbind(company_db, df)
+}
+
+company_nolink$name <- NA
+company_nolink$dba <- NA
+company_nolink$description <- NA
+company_nolink$industry <- NA
+company_nolink$address <- NA
+company_nolink$website <- NA
+company_nolink$employees <- NA
+company_nolink$revenue <- NA
+company_nolink$year_started <- NA
+company_nolink$year_inc <- NA
+company_nolink$esg_rank <- NA
+company_nolink <- select(company_nolink, id, official_name, name, dba, 
+                         description, industry, address, website, 
+                         employees, revenue, year_started, year_inc, esg_rank, 
+                         notes)
+
+company_db <- rbind(company_db, company_nolink)
+
+write.csv(company_db, "lgu/company_db.csv", row.names = F)
+
+
