@@ -71,6 +71,7 @@ df$company_size <- factor(df$company_size, levels = c("Large (100M+)",
                                                       "Non-company", 
                                                       "Unknown"))
 
+saveRDS(df, "lgu/df_final.RDS")
 df <- select(df, -c(licensee, crop_name_scientific, variety_name, invention_name, 
                     department, inventor_last_name, inventor_last_name,
                     effective_date, end_date, reference_id, id, dba, description, 

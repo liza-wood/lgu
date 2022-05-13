@@ -1,4 +1,5 @@
 library(dplyr)
+library(stringr)
 # Set working director to Box
 setwd("~/Box/")
 
@@ -69,6 +70,29 @@ license <- license %>%
   ))
 
 table(license$crop)
+
+license <- license %>% 
+  mutate(crop_fewer = case_when(
+    crop_name_common %in% minorberry ~ "Berry",
+    crop_name_common %in% majorberry ~ "Berry",
+    crop_name_common %in% forage ~ "Other",
+    crop_name_common %in% lawngrass ~ "Lawn grass",
+    crop_name_common %in% orngrass ~ "Ornamental",
+    crop_name_common %in% ornshrub ~ "Ornamental",
+    crop_name_common %in% grape ~ "Perennial (fruit/nut)",
+    crop_name_common %in% nuttree ~ "Perennial (fruit/nut)",
+    crop_name_common %in% fruittree ~ "Perennial (fruit/nut)",
+    crop_name_common %in% stonefruit ~ "Perennial (fruit/nut)",
+    crop_name_common %in% fieldcrops ~ "Field crops",
+    crop_name_common %in% minorgrain ~ "Grain",
+    crop_name_common %in% majorgrain ~ "Grain",
+    crop_name_common %in% legume ~ "Legume",
+    crop_name_common %in% oilseed ~ "Oil seed",
+    crop_name_common %in% rootstarch ~ "Roots (starch)",
+    T ~ "Other"
+  ))
+
+table(license$crop_fewer)
 
 ## Agreement types
 length(unique(agreement$official_name)) # we have 15 agreement types on our master list
@@ -143,7 +167,7 @@ countries <- c("Spain", "Australia", "Chile", "Japan", "Italy",
                      "New Zealand", "Belgium", "Bermuda", "United Kingdom",
                      "Germany", "Netherlands", "Canada", "Norway", "France")
 countries.p <- paste(countries, collapse = "|")
-states <- read.csv("data/states_abbr.csv")
+states <- read.csv("lgu/states_abbr.csv")
 
 location <- c()
 for(j in 1:nrow(company)){
@@ -219,6 +243,15 @@ df <- df %>%
 
 table(df$spatial_match)
 table(df$company_size)
+
+# Syngenta's top-10 universities: https://www.syngenta-us.com/thrive/community/top-10-ag-universities.html
+# Other ranking: https://www.topuniversities.com/university-rankings/university-subject-rankings/2015/agriculture-forestry#sorting=rank+region=+country=+faculty=+stars=false+search
+
+# prestige score should be average Q ranking + faculty numbers 
+top10uni <- c("New York", "California", "Texas", "Iowa", "Illinois", "Florida",
+              "Indiana", "Ohio", "North Carolina") # Georgia and Washington?
+
+df$topuni <- ifelse(df$state %in% top10uni, T, F)
 
 
 write.csv(df, "lgu/merged_df.csv", row.names = F)
