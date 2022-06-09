@@ -12,6 +12,8 @@ setwd("~/Box/")
 company <- read.csv("lgu/company.csv")
 db <- read.csv("lgu/company_db.csv")
 company_nolink <- filter(company, is.na(dnb_link))
+company_multilink <- #figure this out
+
 company <- filter(company, !is.na(dnb_link))
 company$id <- paste0("c", 1:nrow(company))
 company_nolink$id <- paste0("c", seq(from = nrow(company)+1, 
@@ -108,12 +110,14 @@ for(i in 1:nrow(company)){
   company_db <- rbind(company_db, df)
 }
 
+# Make other for 
+
 company_nolink$name <- NA
 company_nolink$dba <- NA
 company_nolink$description <- NA
 company_nolink$industry <- NA
-company_nolink$address <- NA
-company_nolink$website <- NA
+company_nolink$address <- NA # condition on location
+company_nolink$website <- NA # other link
 company_nolink$employees <- NA
 company_nolink$revenue <- NA
 company_nolink$year_started <- NA
