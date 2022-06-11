@@ -22,7 +22,7 @@ poisson <- glm(n ~ funding_amt_grpd_log + mean_rev, data = counts, family = "poi
 summary(poisson)
 poisson1 <- glm(n ~ funding_amt_grpd_log + mean_rev + state, data = counts, family = "poisson")
 summary(poisson1)
-# We see a NEGATIVE SIGNIFICANT EFFECT between public funding and plant variety licenses -- so public money actually results in less licenses; while we see a small signifivant effect of revenue of the companies they license to -- basically that the more licenses you are producing the larger value companies you are licensing too. Further, the big the variation is all really about the state, where almost all states are licensing significantly less than California, except for Kansas, which licenses about the same, and Michigan, which licenses more
+# We see a NEGATIVE SIGNIFICANT EFFECT between public funding and plant variety licenses -- so public money actually results in less licenses; while we see a small significant effect of revenue of the companies they license to -- basically that the more licenses you are producing the larger value companies you are licensing too. Further, the big the variation is all really about the state, where almost all states are licensing significantly less than California, except for Kansas, which licenses about the same, and Michigan, which licenses more
 
 ## Do we see the same thing when we fix the effect of state -- yes
 poisson2 <- glmer(n ~ funding_amt_grpd_log + mean_rev + (1|state), data = counts, family = "poisson")
@@ -33,7 +33,7 @@ summary(poisson2)
 
 ## First get our complete data 
 df.full <- df %>% 
-  select(agreement_bi, crop_fewer, rev_log, funding_amt_grpd_log, 
+  select(agreement_bi, crop_fewer, funding_amt_grpd_log, 
          license_yr_grpd, state) %>% 
   filter(complete.cases(.) == T)
 
@@ -42,15 +42,16 @@ df.full$crop_fewer <- factor(df.full$crop_fewer)
 df.full$crop_fewer <- relevel(df.full$crop_fewer, "Field crops")
 
 # Can we predict exclusive agreements based on crop type, revenue of licensee, and public funding amount?
-glm_agree <- glm(agreement_bi ~ crop_fewer + rev_log + funding_amt_grpd_log, 
+glm_agree <- glm(agreement_bi ~ crop_fewer + funding_amt_grpd_log, 
                  family = binomial,  data = df.full)
 summary(glm_agree)
-# At first these results suggest that the most public funding you get, the more likely you are to have exclusive licenses, and the higher the rev
-
-glmer_agree <- glmer(agreement_bi ~ crop_fewer + rev_log + funding_amt_grpd_log + 
+# At first these results suggest that the more public funding you get, the more likely you are to have exclusive licenses, and the higher the rev
+# Let's add in state as a fixed effect
+glmer_agree <- glmer(agreement_bi ~ crop_fewer +  funding_amt_grpd_log + 
                        (1 | state), #  (1|license_yr_grpd) + 
                      family = binomial,  data = df.full)
 summary(glmer_agree)
+# Now it is now significant
 
 fixef(glmer_agree) # Average intercept across all variables -- just the coefficients
 table(df.full$state)
@@ -61,15 +62,15 @@ state_variation <- data.frame(dist.from.mean = ranef(glmer_agree)$state$`(Interc
            state = unique(df.full$state))
 
 df.full <- df %>% 
-  select(inregion, crop_fewer, rev_log, funding_amt_grpd_log, 
+  select(inregion, crop_fewer, funding_amt_grpd_log, 
          license_yr_grpd, state) %>% 
   filter(complete.cases(.) == T)
 
-glm_inregion <- glm(inregion ~ crop_fewer + rev_log + funding_amt_grpd_log, 
+glm_inregion <- glm(inregion ~ crop_fewer + funding_amt_grpd_log, 
                     family = binomial,  data = df.full)
 summary(glm_inregion)
 
-glmer_inregion <- glmer(inregion ~ crop_fewer + rev_log + funding_amt_grpd_log + 
+glmer_inregion <- glmer(inregion ~ crop_fewer + funding_amt_grpd_log + 
                           (1|state), # (1|license_yr_grpd)
                         family = binomial,  data = df.full)
 summary(glmer_inregion)
@@ -86,13 +87,13 @@ ranef(glmer_inregion)$state$`(Intercept)` # This will tell us how far the judge 
 # Q2: Does the amount of public funding affect which crops you breed?
 # Now let's pare down the data for more models
 df.full <- df %>% 
-  select(crop_fewer, funding_amt_grpd_log, license_yr_grpd, rev_log, state) %>% 
+  select(crop_fewer, funding_amt_grpd_log, license_yr_grpd, state) %>% 
   filter(complete.cases(.) == T)
 
 # Setting "field crops" as the baseline to which to compare all crops
 df.full$crop_fewer <- factor(df.full$crop_fewer)
 df.full$crop_fewer <- relevel(df.full$crop_fewer, "Field crops")
 
-multi <- nnet::multinom(crop_fewer ~ rev_log + funding_amt_grpd_log, 
+multi <- nnet::multinom(crop_fewer ~ funding_amt_grpd_log, 
                         data = df.full, Hess = T)
 summary(multi)

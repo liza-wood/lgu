@@ -43,6 +43,8 @@ df <- read.csv("lgu/merged_df.csv") %>%
 
 intersect(colnames(df), colnames(fund_df))
 df <- merge(df, fund_df, all.x = T)
+# Making this unique to remove some of the repeated geographic exclusive licenses (this was a thing at lease in CA)
+df <- unique(df)
 
 organic <- str_detect(unique(df$description), "[Oo]rganic")
 table(organic)
@@ -64,7 +66,7 @@ df$inregion <- ifelse(df$spatial_match == "Within region", 1,
                ifelse(df$spatial_match == "Outside region", 0, NA))
 
 
-df$company_size <- factor(df$company_size, levels = c("Large (100M+)",
+df$company_size <- factor(df$company_size, levels = c("Large ($100M+)",
                                                       "Medium ($10M - $100M)",
                                                       "Small ($328K - $10M)",
                                                       "Very small (<$350K)",
@@ -80,12 +82,31 @@ df <- select(df, -c(licensee, crop_name_scientific, variety_name, invention_name
 
 # ---- Univariate ----
 
+table(df$crop_name_common)
 table(df$crop)
+table(df$crop_intermed)
+table(df$crop_fewer)
 summary(df$rev/10000)
+unique(df$license_yr)
+df$yr_bi <- ifelse(df$license_yr %in% 2001:2010, "2001-2010", "2011-2020")
 table(df$agreement_type)
+618/(618+709) # Exclusive
+table(df$agreement_type, df$yr_bi)
+279/(279+234) # exclusive 2001-2010
+339/(339+475) # exclusive 2011-2020
 table(df$spatial_match)
+prop.table(table(df$spatial_match))
+381/(381+1434) # outside
+prop.table(table(df$spatial_match, df$yr_bi), margin = 2)
+158/(158+451) # outside 2001-2010
+223/(223+983) # outside 2011-2020
+
+prop.table(table(df$company_size[df$company_size != "Unknown" & df$company_size != "Non-company"]))
+prop.table(table(df$company_size, df$spatial_match), margin = 2)
 
 df %>% 
+  select(name, company_size) %>% 
+  unique() %>% 
   count(company_size) %>% 
   mutate(sum = sum(n)) %>% 
   mutate(percent = 100*(n/sum)) %>% 
@@ -97,17 +118,166 @@ df %>%
 
 ## TIME across the x axis ----
 # Are licenses generally going up or down?
-tab <- as.data.frame(table(df$license_yr))
-colnames(tab) <- c("x", "n")
 
-ggplot(df, aes(x = license_yr)) +
-  geom_bar() +
-  #geom_text(tab, aes(x = x, label = n)) + 
-  stat_count(geom = "text", colour = "white", size = 3.5,
-             aes(label = ..count..),
-             position=position_stack(vjust=0.5)) +
+df %>% 
+  group_by(yr_bi) %>% 
+  count()
+
+time_count_plot <- df %>% 
+  group_by(license_yr) %>% 
+  count() %>% 
+  ggplot(aes(x = license_yr, y = n,)) +
+  geom_bar(stat = "identity") +
+  stat_identity(geom = "text", colour = "white", size = 2,
+                aes(label = n),
+                position=position_stack(vjust=0.5)) +
   labs(x = "Year", y = "Count", title = "Licenses over time") +
-  theme_linedraw()
+  theme_linedraw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 10)) ; time_count_plot 
+
+df$crop_main <- ifelse(df$crop_fewer == "Field crops", "Field crops",
+                       ifelse(df$crop_fewer == "Perennial (fruit/nut)", 
+                              "Perennial (fruit/nut)", "Other"))
+
+yr_count <- df %>% 
+  group_by(license_yr) %>% 
+  count() %>% 
+  rename(yr_n = n)
+colors9 <- RColorBrewer::brewer.pal(name = "Spectral", n = 9)
+
+crop_plot <- df %>% 
+  group_by(license_yr, crop_main) %>% 
+  count() %>% 
+  left_join(yr_count) %>% 
+  mutate(prop = round(100*n/sum(yr_n), 0)) %>% 
+  ungroup() %>% 
+  mutate(prop = case_when(
+    prop == 29 & license_yr == 2009 ~ 28,
+    prop == 39 & license_yr == 2014 ~ 38,
+    prop == 55 & license_yr == 2015 ~ 56,
+    T ~ prop)) %>% 
+  ggplot(aes(x = license_yr, y = prop, fill = crop_main)) +
+  geom_bar(stat = "identity") +
+  #stat_identity(geom = "text", colour = "white", size = 3.5,
+  #           aes(label = prop),
+  #           position=position_stack(vjust=0.5)) +
+  labs(x = "Year", y = "Percent", fill = "Crop",
+       title = "Percent of license by crop over time") +
+  scale_fill_manual(values = colors9[c(1,3,8)])+
+  theme_linedraw() +
+  theme(plot.title = element_text(hjust = 0.1, size = 10)) ; crop_plot
+
+table(df$crop_fewer)
+df$crop_main2 <- ifelse(df$crop_fewer == "Field crops", "Field crops",
+                 ifelse(df$crop_fewer == "Perennial (fruit/nut)", 
+                        "Perennial (fruit/nut)",
+                 ifelse(df$crop_fewer == "Berries", "Berries",
+                 ifelse(df$crop_fewer == "Roots (starch)", "Roots",
+                 ifelse(df$crop_fewer == "Grain", "Grain", "Other")))))
+crop_plot2 <- df %>% 
+  group_by(license_yr, crop_main2) %>% 
+  count() %>% 
+  left_join(yr_count) %>% 
+  mutate(prop = round(100*n/sum(yr_n), 0)) %>% 
+  ungroup() %>% 
+  mutate(prop = case_when(
+    prop == 29 & license_yr == 2009 ~ 28,
+    prop == 39 & license_yr == 2014 ~ 38,
+    prop == 55 & license_yr == 2015 ~ 56,
+    T ~ prop)) %>% 
+  ggplot(aes(x = license_yr, y = prop, fill = crop_main2)) +
+  geom_bar(stat = "identity") +
+  #stat_identity(geom = "text", colour = "white", size = 3.5,
+  #           aes(label = prop),
+  #           position=position_stack(vjust=0.5)) +
+  labs(x = "Year", y = "Percent", fill = "Crop",
+       title = "Percent of license by crop over time") +
+  scale_fill_manual(values = colors9[c(1,2,3,7,8)])+
+  theme_linedraw() +
+  theme(plot.title = element_text(hjust = 0.1, size = 10)) ; crop_plot2
+
+yr_count3 <- df %>% 
+  filter(!(company_size %in% c("Unknown", "Non-company"))) %>% 
+  filter(!is.na(company_size)) %>% 
+  group_by(license_yr) %>% 
+  count() %>% 
+  rename(yr_n = n)
+
+company_plot <- df %>% 
+  filter(!(company_size %in% c("Unknown", "Non-company"))) %>% 
+  filter(!is.na(company_size)) %>% 
+  group_by(license_yr, company_size) %>% 
+  count() %>% 
+  left_join(yr_count3) %>% 
+  mutate(prop = round(100*n/sum(yr_n), 0)) %>% 
+  ungroup() %>% 
+  mutate(prop = case_when(
+    prop == 48 & license_yr %in% c(2000, 2004) ~ 49,
+    prop == 37 & license_yr == 2005 ~ 36,
+    prop == 33 & license_yr == 2010 ~ 32,
+    prop == 35 & license_yr == 2012 ~ 34,
+    prop == 12 & license_yr == 2013 ~ 13,
+    prop == 18 & license_yr == 2015 ~ 17,
+    prop == 21 & license_yr == 2018 ~ 22,
+    T ~ prop)) %>% 
+  ggplot(aes(x = license_yr, y = prop, fill = company_size)) +
+  geom_bar(stat = "identity") +
+  #stat_identity(geom = "text", colour = "white", size = 3.5,
+  #              aes(label = prop),
+  #              position=position_stack(vjust=0.5)) +
+  labs(x = "Year", y = "Percent", fill = "Company size",
+       title = "Percent of license by company size over time") +
+  scale_fill_manual(values = colors9[c(1,3,7,9)])+
+  theme_linedraw() +
+  theme(plot.title = element_text(hjust = 0.1, size = 10)) ; company_plot
+
+licensee_plot <- df %>% 
+  mutate(spatial_match = case_when(
+    spatial_match == "Outside region" ~ "Extra-regional",
+    spatial_match == "Within region" ~ "Regional",
+    T ~ spatial_match
+  )) %>% 
+  group_by(license_yr, spatial_match) %>% 
+  count() %>% 
+  left_join(yr_count) %>% 
+  mutate(prop = round(100*n/sum(yr_n), 0)) %>% 
+  ggplot(aes(x = license_yr, y = prop, fill = spatial_match)) +
+  geom_bar(stat = "identity") +
+  stat_identity(geom = "text", colour = "white", size = 3.5,
+                aes(label = prop),
+                position=position_stack(vjust=0.5)) +
+  labs(x = "Year", y = "Percent", fill = "Licensee location",
+       title = "Percent of license by licensee over time") +
+  scale_fill_manual(values = colors9[c(2,9)])+
+  theme_linedraw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 10)) ; licensee_plot
+
+yr_count2 <- df %>% 
+  filter(agreement_type %in% c("Non-exclusive license", "Exclusive license")) %>% 
+  group_by(license_yr) %>% 
+  count() %>% 
+  rename(yr_n = n)
+agreement_plot <- df %>% 
+  filter(agreement_type %in% c("Non-exclusive license", "Exclusive license")) %>% 
+  group_by(license_yr, agreement_type) %>% 
+  count() %>% 
+  left_join(yr_count2) %>% 
+  mutate(prop = round(100*n/sum(yr_n), 0)) %>% 
+  ggplot(aes(x = license_yr, y = prop, fill = agreement_type)) +
+  geom_bar(stat = "identity") +
+  #stat_identity(geom = "text", colour = "white", size = 3.5,
+  #              aes(label = prop),
+  #              position=position_stack(vjust=0.5)) +
+  labs(x = "Year", y = "Percent", fill = "Agreement restriction",
+       title = "Percent of license by agreement type over time") +
+  scale_fill_manual(values = colors9[c(1,8)])+
+  theme_linedraw() +
+  theme(plot.title = element_text(hjust = 0.1, size = 10)) ; agreement_plot
+
+
+library(cowplot)
+plot_grid(time_count_plot, agreement_plot, company_plot, crop_plot, labels = c('A', 'B', "C", "D"), label_size = 12, nrow = 2)
+ggsave("~/Desktop/lgu_plots.png", width = 8, height = 4)
 
 ggplot(df, aes(x = license_yr)) +
   geom_bar() +
@@ -121,43 +291,46 @@ ggplot(df, aes(x = license_yr)) +
 table(df$crop, df$license_yr)
 
 df %>% 
-  count(license_yr, crop) %>% 
+  count(license_yr, crop_fewer) %>% 
   group_by(license_yr) %>% 
   mutate(sum = sum(n)) %>% 
   mutate(percent = 100*(n/sum)) %>% 
-  ggplot(aes(x = license_yr, y = percent, fill = crop)) +
+  ggplot(aes(x = license_yr, y = percent, fill = crop_fewer)) +
   geom_bar(stat = "identity") +
   labs(x = "Year", y = "Percent", 
        fill = "Crop type",
        title = "Licenses over time by crop") +
-  scale_fill_viridis_d() +
+  #scale_fill_viridis_d() +
+  scale_fill_brewer(palette = "Spectral") +
   theme_linedraw()
 
 df %>% 
-  count(license_yr, crop) %>% 
+  count(license_yr, crop_intermed) %>% 
   group_by(license_yr) %>% 
   mutate(sum = sum(n)) %>% 
   mutate(percent = 100*(n/sum)) %>% 
   ggplot(aes(x = license_yr, y = percent)) +
   geom_bar(stat = "identity") +
+  geom_smooth() +
   labs(x = "Year", y = "Percent", 
        fill = "Crop type",
        title = "Licenses over time by crop") +
-  scale_fill_viridis_d() +
+  #scale_fill_viridis_d() +
   theme_linedraw() +
-  facet_wrap(~crop)
+  facet_wrap(~crop_intermed, scales = "free_y")
 
 df %>% 
-  count(state, license_yr, crop) %>% 
+  count(state, license_yr, crop_fewer) %>% 
   group_by(state, license_yr) %>% 
   mutate(sum = sum(n)) %>% 
   mutate(percent = 100*(n/sum)) %>% 
-  ggplot(aes(x = license_yr, y = percent, fill = crop)) +
+  ggplot(aes(x = license_yr, y = percent, fill = crop_fewer)) +
   geom_bar(stat = "identity") +
   labs(x = "Year", y = "Percent", 
        fill = "Crop type",
        title = "Licenses over time by crop and state") +
-  scale_fill_viridis_d() +
+  #scale_fill_viridis_d() +
+  scale_fill_brewer(palette = "Spectral") +
   theme_linedraw() +
   facet_wrap(~state, nrow = 3)
 
@@ -174,7 +347,7 @@ df %>%
   labs(x = "Year", y = "Percent", 
        fill = "Agreement type",
        title = "Licenses over time by license agreement") +
-  scale_fill_viridis_d() +
+  scale_fill_brewer(palette = "Spectral") +
   theme_linedraw()
 
 df %>% 
@@ -188,7 +361,7 @@ df %>%
   labs(x = "Year", y = "Percent", 
        fill = "Agreement type",
        title = "Licenses over time by license agreement and state") +
-  scale_fill_viridis_d() +
+  scale_fill_brewer(palette = "Spectral") +
   theme_linedraw()
 
 # By companies versus non companies?
@@ -233,7 +406,7 @@ df %>%
   labs(x = "Year", y = "Percent", 
        fill = "Company size",
        title = "Licenses over time by company size") +
-  scale_fill_viridis_d() +
+  scale_fill_brewer(palette = "Spectral") +
   theme_linedraw()
 
 df %>% 
@@ -248,16 +421,16 @@ df %>%
   labs(x = "Year", y = "Percent", 
        fill = "Company size",
        title = "Licenses over time by company size and state") +
-  scale_fill_viridis_d() +
+  scale_fill_brewer(palette = "Spectral") +
   theme_linedraw()
 
 df %>% 
   filter(company_size != "Unknown") %>% 
-  ggplot(aes(x = license_yr, y = rev_log)) + 
-  geom_point() +
-  geom_smooth()
+  ggplot(aes(x = factor(license_yr), y = rev_log)) + 
+  geom_boxplot() 
 
 # Within and outside of region
+colors <- RColorBrewer::brewer.pal(name = "Spectral", n = 9)[c(3,8)]
 df %>% 
   filter(spatial_match != "Unknown") %>% 
   mutate(spatial_match = case_when(
@@ -272,7 +445,7 @@ df %>%
   labs(x = "Year", y = "Percent", 
        fill = "Licensee location",
        title = "Licenses over time by licensee geographic scope") +
-  scale_fill_viridis_d() +
+  scale_fill_manual(values = colors) +
   theme_linedraw()
 
 
@@ -291,25 +464,24 @@ df %>%
   labs(x = "Year", y = "Percent", 
        fill = "Licensee location",
        title = "Licenses over time by licensee geographic scope and state") +
-  scale_fill_viridis_d() +
+  scale_fill_manual(values = colors) +
   theme_linedraw()
 
 ## CROP across the x axis ----
 # What crops are being developed and licensed
-ggplot(df, aes(x = crop)) +
+ggplot(df, aes(x = crop_fewer)) +
   geom_bar() +
   stat_count(geom = "text", colour = "white", size = 3.5,
              aes(label = ..count..),
              position=position_stack(vjust=0.5)) +
   labs(x = "Crop", y = "Count", 
        title = "License totals by crop") +
-  scale_fill_viridis_d() +
   theme_linedraw() +
   theme(axis.text.x= element_text(angle = 45, hjust = 1)) 
 
-crop_by_state <- data.frame(table(df$crop, df$state))
+crop_by_state <- data.frame(table(df$crop_fewer, df$state))
 
-ggplot(df, aes(x = crop)) +
+ggplot(df, aes(x = crop_fewer)) +
   geom_bar() +
   labs(x = "Crop", y = "Count", title = "License totals by crop and state") +
   theme_linedraw() +
@@ -317,19 +489,19 @@ ggplot(df, aes(x = crop)) +
   theme(axis.text.x= element_text(angle = 45, hjust = 1))
 
 # By exclusivity type?
-crop_by_agreement <- data.frame(table(df$crop, df$agreement_type))
+crop_by_agreement <- data.frame(table(df$crop_fewer, df$agreement_type))
 
 df %>% 
-  count(crop, agreement_type) %>% 
-  group_by(crop) %>% 
+  count(crop_fewer, agreement_type) %>% 
+  group_by(crop_fewer) %>% 
   mutate(sum = sum(n)) %>% 
   mutate(percent = 100*(n/sum)) %>% 
-  ggplot(aes(x = crop, y = percent, fill = agreement_type)) + 
+  ggplot(aes(x = crop_fewer, y = percent, fill = agreement_type)) + 
   geom_bar(stat = "identity") +
   labs(x = "Crop", y = "Percent", 
        fill = "Agreement type",
        title = "Crop licenses by agreement type") +
-  scale_fill_viridis_d() +
+  scale_fill_brewer(palette = "Spectral") +
   theme_linedraw() +
   theme(axis.text.x= element_text(angle = 45, hjust = 1))
 
@@ -350,35 +522,35 @@ df %>%
 
 # By companies versus non companies?
 
-crop_by_licenseetype <- data.frame(table(df$crop, df$licensee_type))
+crop_by_licenseetype <- data.frame(table(df$crop_fewer, df$licensee_type))
 
 df %>% 
   filter(!is.na(licensee_type)) %>% 
-  count(crop, licensee_type) %>% 
-  group_by(crop) %>% 
+  count(crop_fewer, licensee_type) %>% 
+  group_by(crop_fewer) %>% 
   mutate(sum = sum(n)) %>% 
   mutate(percent = 100*(n/sum)) %>% 
-  ggplot(aes(x = crop, y = percent, fill = licensee_type)) + 
+  ggplot(aes(x = crop_fewer, y = percent, fill = licensee_type)) + 
   geom_bar(stat = "identity") +
   labs(x = "Crop", y = "Percent", 
        fill = "Licensee",
        title = "Crop licenses by licensee") +
-  scale_fill_viridis_d() +
+  scale_fill_manual(values = colors) +
   theme_linedraw() +
   theme(axis.text.x= element_text(angle = 45, hjust = 1))
 
 df %>% 
   filter(!is.na(licensee_type)) %>% 
-  count(state, crop, licensee_type) %>% 
-  group_by(state, crop) %>% 
+  count(state, crop_fewer, licensee_type) %>% 
+  group_by(state, crop_fewer) %>% 
   mutate(sum = sum(n)) %>% 
   mutate(percent = 100*(n/sum)) %>% 
-  ggplot(aes(x = crop, y = percent, fill = licensee_type)) + 
+  ggplot(aes(x = crop_fewer, y = percent, fill = licensee_type)) + 
   geom_bar(stat = "identity") +
   labs(x = "Crop", y = "Percent", 
        fill = "Licensee",
        title = "Crop licenses by licensee and state") +
-  scale_fill_viridis_d() +
+  scale_fill_manual(values = colors) +
   theme_linedraw() +
   theme(axis.text.x= element_text(angle = 45, hjust = 1)) +
   facet_wrap(~state, nrow = 3)
@@ -389,53 +561,53 @@ crop_by_companysize <- data.frame(table(df$crop, df$company_size))
 
 df %>% 
   filter(company_size != "Unknown") %>% 
-  count(crop, company_size) %>% 
-  group_by(crop) %>% 
+  count(crop_fewer, company_size) %>% 
+  group_by(crop_fewer) %>% 
   mutate(sum = sum(n)) %>% 
   mutate(percent = 100*(n/sum)) %>% 
-  ggplot(aes(x = crop, y = percent, fill = company_size)) + 
+  ggplot(aes(x = crop_fewer, y = percent, fill = company_size)) + 
   geom_bar(stat = "identity") +
   labs(x = "Year", y = "Percent", 
        fill = "Company size",
        title = "Crop licenses by company size") +
-  scale_fill_viridis_d() +
+  scale_fill_brewer(palette =  "Spectral") +
   theme_linedraw() +
   theme(axis.text.x= element_text(angle = 45, hjust = 1))
 
 df %>% 
   filter(company_size != "Unknown") %>% 
-  count(state, crop, company_size) %>% 
-  group_by(state, crop) %>% 
+  count(state, crop_fewer, company_size) %>% 
+  group_by(state, crop_fewer) %>% 
   mutate(sum = sum(n)) %>% 
   mutate(percent = 100*(n/sum)) %>% 
-  ggplot(aes(x = crop, y = percent, fill = company_size)) + 
+  ggplot(aes(x = crop_fewer, y = percent, fill = company_size)) + 
   geom_bar(stat = "identity") +
   labs(x = "Year", y = "Percent", 
        fill = "Company size",
        title = "Crop licenses by company size and state") +
-  scale_fill_viridis_d() +
+  scale_fill_brewer(palette =  "Spectral") +
   theme_linedraw() +
   theme(axis.text.x= element_text(angle = 45, hjust = 1)) +
   facet_wrap(~state, nrow = 3)
 
 # Within and outside of region
-crop_by_companylocation <- data.frame(table(df$crop, df$inregion))
+crop_by_companylocation <- data.frame(table(df$crop_fewer, df$inregion))
 
 df %>% 
   filter(spatial_match != "Unknown") %>% 
   mutate(spatial_match = case_when(
     domestic == F ~ "International",
     T ~ spatial_match)) %>% 
-  count(crop, spatial_match) %>% 
-  group_by(crop) %>% 
+  count(crop_fewer, spatial_match) %>% 
+  group_by(crop_fewer) %>% 
   mutate(sum = sum(n)) %>% 
   mutate(percent = 100*(n/sum)) %>% 
-  ggplot(aes(x = crop, y = percent, fill = spatial_match)) + 
+  ggplot(aes(x = crop_fewer, y = percent, fill = spatial_match)) + 
   geom_bar(stat = "identity") +
   labs(x = "Year", y = "Percent", 
        fill = "Licensee location",
        title = "Crop licenses by licensee geographic scope") +
-  scale_fill_viridis_d() +
+  scale_fill_manual(values = colors) +
   theme_linedraw() +
   theme(axis.text.x= element_text(angle = 45, hjust = 1))
 
@@ -468,7 +640,6 @@ funding %>%
   geom_bar(stat = "identity") +
   labs(x = "Year", y = "Public award dollars (1M)", 
        title = "USDA plant breeding funding (All 38 funded states)") +
-  scale_fill_viridis_d() +
   theme_linedraw() 
 
 fund_df %>% 
@@ -476,12 +647,24 @@ fund_df %>%
   geom_bar(stat = "identity") +
   labs(x = "Year", y = "Public award dollars (1M)", 
        title = "USDA plant breeding funding by state") +
-  scale_fill_viridis_d() +
   theme_linedraw() +
   facet_wrap(~state, nrow = 5) +
   theme(axis.text.x= element_text(angle = 45, hjust = 1))
 
 # This is different because this is only for the schools we have
+funding %>% 
+  filter(state %in% df$state) %>% 
+  group_by(state) %>% 
+  summarize(sum(Award.Dollars))
+
+funding %>% 
+  filter(state %in% df$state) %>% 
+  ggplot(aes(x = year, y = Award.Dollars/1000000)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Year", y = "Public award dollars (1M)", 
+       title = "USDA plant breeding funding (14 states)") +
+  theme_linedraw() 
+
 df %>% 
   filter(!is.na(funding_yr_grpd)) %>% 
   select(state, funding_yr_grpd, funding_amt_grpd) %>% 
@@ -489,8 +672,7 @@ df %>%
   ggplot(aes(x = funding_yr_grpd, y = funding_amt_grpd/1000000)) +
   geom_bar(stat = "identity") +
   labs(x = "Year", y = "Public award dollars (1M)", 
-       title = "USDA Plant Breeding Funding for 11 states in our sample") +
-  scale_fill_viridis_d() +
+       title = "USDA Plant Breeding Funding for states in our sample") +
   theme_linedraw() +
   facet_wrap(~state, nrow = 3) +
   theme(axis.text.x= element_text(angle = 45, hjust = 1))
@@ -498,7 +680,8 @@ df %>%
 
 # Exclusivity ~ crop_cat + company_revenue + (1 | grp_yr_license) + grp_amt
 library(lme4)
-
+factor(df$crop, levels = c("Field crops", ))
+lm(rev_log ~ crop, df)
 
 ex <- df %>% select(agreement_bi, funding_amt_grpd, rev) %>% 
   filter(agreement_bi == 1)
