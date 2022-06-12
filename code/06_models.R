@@ -87,13 +87,13 @@ ranef(glmer_inregion)$state$`(Intercept)` # This will tell us how far the judge 
 # Q2: Does the amount of public funding affect which crops you breed?
 # Now let's pare down the data for more models
 df.full <- df %>% 
-  select(crop_fewer, funding_amt_grpd_log, license_yr_grpd, state) %>% 
+  select(crop_intermed, funding_amt_grpd_log, license_yr_grpd, state) %>% 
   filter(complete.cases(.) == T)
 
 # Setting "field crops" as the baseline to which to compare all crops
-df.full$crop_fewer <- factor(df.full$crop_fewer)
-df.full$crop_fewer <- relevel(df.full$crop_fewer, "Field crops")
+df.full$crop_intermed <- factor(df.full$crop_intermed)
+df.full$crop_intermed <- relevel(df.full$crop_intermed, "Field crops")
 
-multi <- nnet::multinom(crop_fewer ~ funding_amt_grpd_log, 
+multi <- nnet::multinom(crop_intermed ~ funding_amt_grpd_log, 
                         data = df.full, Hess = T)
 summary(multi)
