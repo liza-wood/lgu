@@ -1,22 +1,38 @@
 
-df <- data.frame(Applicant = c("Company", "Government", "University", "Total"),
-        Number = c(2619, 57, 401, 3077))
-df$Percent <- paste0(round(100*df$Number/3077, 1), "%")
-
 # PVPO database
 # https://www.ams.usda.gov/services/plant-variety-protection/application-status
 library(stringr)
 library(lubridate)
-df <- read.csv("~/Desktop/pvpo.csv")
+setwd("~/Box/lgu")
+df <- read.csv("data_raw/other_ip/pvpo.csv")
 df$year <- ifelse(df$Issued.Date == "", NA, year(mdy(df$Issued.Date)))
 typeof(df$year)
 
 total <- df %>% 
   filter(Certificate.Status == "Certificate Issued") %>% 
-  filter(year > 2010 & year < 2022)
+  filter(year > 1999 & year < 2021)
 total$applicant <- ifelse(str_detect(total$Applicant, "[Uu]niversity"), "University",
                      ifelse(str_detect(total$Applicant, "[Gg]overnment|[Aa]gency|[Dd]epartment"), "Government", "Company"))
 
+crops <- read.csv("crop.csv")
+crop <- tolower(paste(crops$crop_name_common, collapse = "|"))
+family <- tolower(paste(crops$crop_name_scientific..genus.species., collapse = "|"))
+morecrops <- "field corn|lettuce|tomato|fescue|watermelon"
+
+total <- total %>% 
+  mutate(crop = case_when(
+    str_detect(tolower(Common.Name), crop) == T ~ 
+                 str_extract(tolower(Common.Name), crop),
+    str_detect(tolower(Scientific.Name), family) == T ~ 
+      str_extract(tolower(Scientific.Name), family),
+    T ~ "X Not yet"))
+
+uni <- total %>% 
+  filter(applicant == "University")
+
+
+
+# ------
 total %>% 
   group_by(applicant) %>% 
   count() %>% 
