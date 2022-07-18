@@ -2,8 +2,8 @@ library(dplyr)
 library(nnet)
 library(lme4)
 library(brms)
-setwd("~/Box/")
-df <- readRDS("lgu/df_final.RDS")
+setwd("~/Box/lgu")
+df <- readRDS("data_clean/df_final.RDS")
 
 # Q1: Does the amount of public funding affect the number of plant varieties that a university licenses?
 ## First we need to shape the data so that we can get our counts

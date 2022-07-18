@@ -40,7 +40,7 @@ lgu_breeding_amt/breeding_amt
 
 df_lgu$year <- year(df_lgu$Award.Date)
 df_lgu$state <- tools::toTitleCase(tolower(df_lgu$State.Name))
-write.csv(df_lgu, "breeding_awards_combined.csv")
+write.csv(df_lgu, "data_raw/federal_funding/breeding_awards_combined.csv")
 
 all <- read.csv("data_raw/federal_funding/allawards.csv") %>% 
   filter(Award.Dollars > 0) %>% 

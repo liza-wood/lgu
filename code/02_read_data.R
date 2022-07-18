@@ -2,7 +2,7 @@ library(googlesheets4)
 library(dplyr)
 
 # Set working director to Box
-setwd("~/Box/")
+setwd("~/Box/lgu")
 
 # This script reads in data from Google Sheets and organizes it into CSV files 
 # Licensing data
@@ -18,22 +18,22 @@ for(i in 1:nrow(states)){
 }
 
 df[c(1:9, 12:14)] = data.frame(lapply(df[c(1:9, 12:14)], as.character))
-write.csv(df, "lgu/license.csv", row.names = F)
+write.csv(df, "data_clean/license.csv", row.names = F)
 
 # Master lists for reference tables
 url <- 'https://docs.google.com/spreadsheets/d/1wBiJ2kaRC9Fr87qAlW9xKdj7-h1InEv4zQQaR5-hXW8/edit#gid=0'
 
 company <- read_sheet(url, sheet = 1)
-write.csv(company, "lgu/company.csv", row.names = F)
+write.csv(company, "data_indices/company.csv", row.names = F)
 
 other_licensee <- read_sheet(url, sheet = 2)
-write.csv(other_licensee, "lgu/other_licensee.csv", row.names = F)
+write.csv(other_licensee, "data_indices/other_licensee.csv", row.names = F)
 
 agreements <- read_sheet(url, sheet = 3)
-write.csv(agreements, "lgu/agreements.csv", row.names = F)
+write.csv(agreements, "data_indices/agreements.csv", row.names = F)
 
 crop <- read_sheet(url, sheet = 4)
-write.csv(crop, "lgu/crop.csv", row.names = F)
+write.csv(crop, "data_indices/crop.csv", row.names = F)
 
 
        

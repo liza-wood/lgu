@@ -3,6 +3,8 @@
 # https://www.ams.usda.gov/services/plant-variety-protection/application-status
 library(stringr)
 library(lubridate)
+library(tidyverse)
+
 setwd("~/Box/lgu")
 df <- read.csv("data_raw/other_ip/pvpo.csv")
 df$year <- ifelse(df$Issued.Date == "", NA, year(mdy(df$Issued.Date)))
@@ -10,9 +12,17 @@ typeof(df$year)
 
 total <- df %>% 
   filter(Certificate.Status == "Certificate Issued") %>% 
-  filter(year > 1999 & year < 2021)
+  filter(year < 2021)
 total$applicant <- ifelse(str_detect(total$Applicant, "[Uu]niversity"), "University",
                      ifelse(str_detect(total$Applicant, "[Gg]overnment|[Aa]gency|[Dd]epartment"), "Government", "Company"))
+
+total$university <- ifelse(str_detect(total$Applicant, "[Uu]niversity"), T, F)
+uni <- total %>% filter(university == T)
+
+write.csv(uni, "data_raw/other_ip/pvpo_university.csv", row.names = F)
+
+
+table(uni$Common.Name)
 
 crops <- read.csv("crop.csv")
 crop <- tolower(paste(crops$crop_name_common, collapse = "|"))

@@ -6,10 +6,10 @@ require(wdman)
 library(dplyr)
 library(stringr)
 # Set working director to Box
-setwd("~/Box/")
+setwd("~/Box/lgu")
 
 # Read in company list
-company <- read.csv("lgu/company.csv")
+company <- read.csv("data_indices/company.csv")
 company$id <- paste0("c", 1:nrow(company))
 company_nolink <- filter(company, is.na(dnb_link))
 company_multilink <- filter(company, !is.na(dnb_link2))
@@ -321,6 +321,6 @@ for(i in 1:nrow(multi_long)){
 }
 
 # I cannot collapse and merge this with the other database until I convert some of the columns to other datatypes, so for now I will save it as its own thing
-write.csv(company_db_multi, "lgu/company_db_multi.csv", row.names = F)
+write.csv(company_db_multi, "data_clean/company_db_multi.csv", row.names = F)
 
 

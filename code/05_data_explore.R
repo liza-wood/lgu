@@ -2,9 +2,9 @@ library(ggplot2)
 library(lubridate)
 library(dplyr)
 # Set working director to Box
-setwd("~/Box/")
+setwd("~/Box/lgu")
 
-funding <- read.csv("lgu/breeding_awards_combined.csv")
+funding <- read.csv("data_raw/federal_funding//breeding_awards_combined.csv")
 funding_by_yr_state <- funding %>% 
   group_by(state, year) %>% 
   summarize(funding_amt = sum(Award.Dollars)) %>% 
@@ -24,7 +24,7 @@ fund_df <- funding %>%
   unique()
 
 
-df <- read.csv("lgu/merged_df.csv") %>% 
+df <- read.csv("data_clean/merged_df.csv") %>% 
   mutate(license_yr = year(effective_date)) %>% 
   filter(license_yr > 1999 & license_yr < 2021) %>% 
   mutate(license_yr_grpd = case_when(
@@ -73,7 +73,7 @@ df$company_size <- factor(df$company_size, levels = c("Large ($100M+)",
                                                       "Non-company", 
                                                       "Unknown"))
 
-saveRDS(df, "lgu/df_final.RDS")
+saveRDS(df, "data_clean/df_final.RDS")
 df <- select(df, -c(licensee, crop_name_scientific, variety_name, invention_name, 
                     department, inventor_last_name, inventor_last_name,
                     effective_date, end_date, reference_id, id, dba, description, 

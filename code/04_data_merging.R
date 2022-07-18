@@ -1,25 +1,25 @@
 library(dplyr)
 library(stringr)
-# Set working director to Box
-setwd("~/Box/")
+# Set working directory to Box
+setwd("~/Box/lgu")
 
 # Read in data
 ## Licensing data
-license <- read.csv("lgu/license.csv") %>% 
+license <- read.csv("data_clean/license.csv") %>% 
   filter(!is.na(crop_name_common))# removing inventions
 ## Company database, scraped with RSelenium
-company <- read.csv("lgu/company_db.csv")
+company <- read.csv("data_clean/company_db.csv")
 company$licensee_type <- "company"
 ## Company list with multiple entires, also scraped from RSelenium
-company_multi <- read.csv("lgu/company_db_multi.csv")
+company_multi <- read.csv("data_clean/company_db_multi.csv")
 company_multi$licensee_type <- "company"
 ## Other licensee master list
-other_licensee <- read.csv("lgu/other_licensee.csv")
+other_licensee <- read.csv("data_indices/other_licensee.csv")
 other_licensee$licensee_type <- "other"
 ## Crop master list
-crop <- read.csv("lgu/crop.csv")
+crop <- read.csv("data_indices/crop.csv")
 ## Agreement master list
-agreement <- read.csv("lgu/agreements.csv")
+agreement <- read.csv("data_indices/agreements.csv")
 
 # --- Checking the data: Do we have our "official names" right? ----
 ## Crops
@@ -169,7 +169,7 @@ countries <- c("Spain", "Australia", "Chile", "Japan", "Italy",
                "New Zealand", "Belgium", "Bermuda", "United Kingdom",
                "Germany", "Netherlands", "Canada", "Norway", "France")
 countries.p <- paste(countries, collapse = "|")
-states <- read.csv("lgu/states_abbr.csv")
+states <- read.csv("data_indices/states_abbr.csv")
 
 location <- c()
 for(j in 1:nrow(company_multi)){
@@ -355,5 +355,5 @@ top10uni <- c("New York", "California", "Texas", "Iowa", "Illinois", "Florida",
 df$topuni <- ifelse(df$state %in% top10uni, T, F)
 
 
-write.csv(df, "lgu/merged_df.csv", row.names = F)
+write.csv(df, "data_clean/merged_df.csv", row.names = F)
 
