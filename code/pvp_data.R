@@ -8,16 +8,17 @@ library(tidyverse)
 setwd("~/Box/lgu")
 df <- read.csv("data_raw/other_ip/pvpo.csv")
 df$year <- ifelse(df$Issued.Date == "", NA, year(mdy(df$Issued.Date)))
-typeof(df$year)
+table(df$year)
 
 total <- df %>% 
-  filter(Certificate.Status == "Certificate Issued") %>% 
   filter(year < 2021)
 total$applicant <- ifelse(str_detect(total$Applicant, "[Uu]niversity"), "University",
                      ifelse(str_detect(total$Applicant, "[Gg]overnment|[Aa]gency|[Dd]epartment"), "Government", "Company"))
+table(total$year)
 
 total$university <- ifelse(str_detect(total$Applicant, "[Uu]niversity"), T, F)
 uni <- total %>% filter(university == T)
+table(uni$year)
 
 write.csv(uni, "data_raw/other_ip/pvpo_university.csv", row.names = F)
 
