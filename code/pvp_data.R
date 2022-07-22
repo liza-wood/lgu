@@ -6,21 +6,32 @@ library(lubridate)
 library(tidyverse)
 
 setwd("~/Box/lgu")
+uni_names <- read.csv("data_indices/universities.csv")
 df <- read.csv("data_raw/other_ip/pvpo.csv")
 df$year <- ifelse(df$Issued.Date == "", NA, year(mdy(df$Issued.Date)))
 table(df$year)
 
 total <- df %>% 
   filter(year < 2021)
-total$applicant <- ifelse(str_detect(total$Applicant, "[Uu]niversity"), "University",
-                     ifelse(str_detect(total$Applicant, "[Gg]overnment|[Aa]gency|[Dd]epartment"), "Government", "Company"))
-table(total$year)
+total$applicant <- ifelse(str_detect(total$Applicant, 
+                                     "[Uu]niversity|Virginia Tech"), "University",
+                     ifelse(str_detect(total$Applicant,
+                                       "[Gg]overnment|[Aa]gency|[Dd]epartment"),
+                            "Government", "Company"))
+lgu_pattern <- paste(uni_names$university_name, collapse = "|")
 
-total$university <- ifelse(str_detect(total$Applicant, "[Uu]niversity"), T, F)
-uni <- total %>% filter(university == T)
+
+for(i in 1:nrow(total)){
+  total$university[i] <- str_extract(total$Applicant[i], lgu_pattern)
+}
+
+uni <- filter(total, !is.na(university))
+write.csv(uni, "data_raw/other_ip/pvpo_university.csv", row.names = F)
+table(uni$university)
 table(uni$year)
 
-write.csv(uni, "data_raw/other_ip/pvpo_university.csv", row.names = F)
+ggplot(uni) +
+  geom_bar(aes(x = year), stat = "count")
 
 
 table(uni$Common.Name)
