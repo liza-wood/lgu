@@ -33,6 +33,7 @@ table(uni$year)
 ggplot(uni) +
   geom_bar(aes(x = year), stat = "count")
 
+# NEED TO MAKE A CROP INDEX
 
 table(uni$Common.Name)
 

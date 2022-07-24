@@ -38,9 +38,15 @@ df_state <- df %>% filter(state == "California") %>%
 inventions <- read.csv("data_raw/inventor/recieved/California.csv")
 CA <- left_join(df_state, inventions) %>% unique()
 
+df_state <- df %>% filter(state == "Oregon") %>% 
+  select(state, crop_name_common, variety_name)
+inventions <- read.csv("data_raw/inventor/recieved/Oregon.csv") 
+OR <- left_join(df_state, inventions) %>% unique()
+
 write.csv(LS, "data_raw/inventor/cleaned/Louisiana.csv", row.names = F)
 write.csv(CT, "data_raw/inventor/cleaned/Connecticut.csv", row.names = F)
 write.csv(MS, "data_raw/inventor/cleaned/Mississippi.csv", row.names = F)
 write.csv(IL, "data_raw/inventor/cleaned/Illinois.csv", row.names = F)
 write.csv(MT, "data_raw/inventor/cleaned/Montana.csv", row.names = F)
 write.csv(CA, "data_raw/inventor/cleaned/California.csv", row.names = F)
+write.csv(OR, "data_raw/inventor/cleaned/Oregon.csv", row.names = F)
