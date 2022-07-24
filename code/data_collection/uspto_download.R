@@ -33,3 +33,5 @@ for(i in 1974:2020){
     uni_plant_patents <- rbind(uni_plant_patents, df)
   }
 }
+
+write.csv(uni_plant_patents, "~/Desktop/uspto1990_2010.csv", row.names = F)

@@ -18,9 +18,9 @@ total$applicant <- ifelse(str_detect(total$Applicant,
                      ifelse(str_detect(total$Applicant,
                                        "[Gg]overnment|[Aa]gency|[Dd]epartment"),
                             "Government", "Company"))
+
+
 lgu_pattern <- paste(uni_names$university_name, collapse = "|")
-
-
 for(i in 1:nrow(total)){
   total$university[i] <- str_extract(total$Applicant[i], lgu_pattern)
 }
