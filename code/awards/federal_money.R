@@ -33,6 +33,36 @@ colleges <- paste(colleges, collapse = "|")
 df_lgu <- df %>% 
   filter(str_detect(Grantee.Name, colleges))
 
+# Where does Cornell fall?
+total_lgu_money <- sum(df_lgu$Award.Dollars)
+total_lgu_awards <- nrow(df_lgu)
+total_cornell_money <- sum(df_lgu$Award.Dollars[str_detect(df_lgu$Grantee.Name, 
+                                                           "CORNELL")])
+total_cornell_awards <- nrow(df_lgu[str_detect(df_lgu$Grantee.Name, "CORNELL"),])
+
+100*(total_cornell_awards/total_lgu_awards)
+100*(total_cornell_money/total_lgu_money)
+
+total_ca_money <- sum(df_lgu$Award.Dollars[str_detect(df_lgu$Grantee.Name,                                              "CALIFORNIA")])
+total_ca_awards <- nrow(df_lgu[str_detect(df_lgu$Grantee.Name, "CALIFORNIA"),])
+100*(total_ca_awards/total_lgu_awards)
+100*(total_ca_money/total_lgu_money)
+
+total_ia_money <- sum(df_lgu$Award.Dollars[str_detect(df_lgu$Grantee.Name,                                              "IOWA")])
+total_ia_awards <- nrow(df_lgu[str_detect(df_lgu$Grantee.Name, "IOWA"),])
+100*(total_ia_awards/total_lgu_awards)
+100*(total_ia_money/total_lgu_money)
+
+total_was_money <- sum(df_lgu$Award.Dollars[str_detect(df_lgu$Grantee.Name,                                              "WASHINGTON")])
+total_was_awards <- nrow(df_lgu[str_detect(df_lgu$Grantee.Name, "WASHINGTON"),])
+100*(total_was_awards/total_lgu_awards)
+100*(total_was_money/total_lgu_money)
+
+total_fl_money <- sum(df_lgu$Award.Dollars[str_detect(df_lgu$Grantee.Name,                                              "FLORIDA")])
+total_fl_awards <- nrow(df_lgu[str_detect(df_lgu$Grantee.Name, "FLORIDA"),])
+100*(total_fl_awards/total_lgu_awards)
+100*(total_fl_money/total_lgu_money)
+
 nrow(df_lgu)/nrow(df) # 76% of plant breeding grants
 breeding_amt <- sum(df$Award.Dollars)
 lgu_breeding_amt <- sum(df_lgu$Award.Dollars)
