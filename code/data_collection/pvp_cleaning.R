@@ -10,9 +10,11 @@ uni_names <- read.csv("data_indices/universities.csv")
 df <- read.csv("data_raw/other_ip/pvpo.csv")
 df$year <- ifelse(df$Issued.Date == "", NA, year(mdy(df$Issued.Date)))
 table(df$year)
+table(is.na(df$year)) # I still want abandoned applications
+df$year <- ifelse(df$Issued.Date == "", year(mdy(df$Status.Date)), df$year)
 
 total <- df %>% 
-  filter(year < 2021)
+  filter(year < 2022)
 total$applicant <- ifelse(str_detect(total$Applicant, 
                                      "[Uu]niversity|Virginia Tech"), "University",
                      ifelse(str_detect(total$Applicant,
