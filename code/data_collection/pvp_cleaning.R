@@ -15,8 +15,8 @@ df$year <- ifelse(df$Issued.Date == "", year(mdy(df$Status.Date)), df$year)
 
 total <- df %>% 
   filter(year < 2022)
-total$applicant <- ifelse(str_detect(total$Applicant, 
-                                     "[Uu]niversity|Virginia Tech"), "University",
+total$applicant <- ifelse(str_detect(tolower(total$Applicant), 
+                              "university|virginia tech|agricultural research service"), "University",
                      ifelse(str_detect(total$Applicant,
                                        "[Gg]overnment|[Aa]gency|[Dd]epartment"),
                             "Government", "Company"))
@@ -24,10 +24,10 @@ total$applicant <- ifelse(str_detect(total$Applicant,
 
 lgu_pattern <- paste(uni_names$university_name, collapse = "|")
 for(i in 1:nrow(total)){
-  total$university[i] <- str_extract(total$Applicant[i], lgu_pattern)
+  total$university[i] <- str_extract(tolower(total$Applicant)[i], tolower(lgu_pattern))
 }
 
-uni <- filter(total, !is.na(university))
+uni <- filter(total, applicant == "University")
 write.csv(uni, "data_raw/other_ip/pvpo_university.csv", row.names = F)
 table(uni$university)
 table(uni$year)

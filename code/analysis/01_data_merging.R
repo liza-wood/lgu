@@ -59,6 +59,7 @@ rootstarch <- c("Potato", "Sweet potato", "Taro")
 vegetable <- c("Sweet and chili pepper")
 other <- c("Stevia")
 
+
 license <- license %>% 
   mutate(crop = case_when(
     crop_name_common %in% minorberry ~ "Berry (minor)",
