@@ -17,5 +17,21 @@ for(i in 1:nrow(states)){
   df <- rbind(df, sheet)
 }
 
-df[c(1:9, 12:14)] = data.frame(lapply(df[c(1:9, 12:14)], as.character))
-write.csv(df, "data_clean/license.csv", row.names = F)
+# Fix this
+rpl_na <- function(x) {ifelse(x == "NANA" | x == "NA" | x == "NULL", NA, x)}
+df[,c(3,4,12:13)] <- data.frame(sapply(df[,c(3,4,12:13)], as.character))
+df[3936, "variety_name"]
+df[,c(3,4,12:13)] <- data.frame(sapply(df[,c(3,4,12:13)], rpl_na))
+df[3936, "variety_name"]
+df <- data.frame(sapply(df, unlist))
+
+# This should be the number of licenses
+df2 <- df %>% select(-department) %>% unique()
+
+df3 <- df %>% 
+  group_by(variety_name, invention_name, licensee, effective_date) %>% 
+  mutate(dept_count = row_number()) %>% 
+  pivot_wider(names_from = dept_count, values_from = department)
+
+df2[c(1:9, 12:14)] = data.frame(lapply(df2[c(1:9, 12:14)], as.character))
+write.csv(df2, "data_clean/license.csv", row.names = F)

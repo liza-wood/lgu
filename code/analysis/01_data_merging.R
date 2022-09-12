@@ -8,11 +8,11 @@ setwd("~/Box/lgu")
 license <- read.csv("data_clean/license.csv") %>% 
   filter(!is.na(crop_name_common))# removing inventions
 ## Company database, scraped with RSelenium
-company <- read.csv("data_clean/company_db.csv")
+company <- read.csv("data_clean/company_db_full.csv")
 company$licensee_type <- "company"
-## Company list with multiple entires, also scraped from RSelenium
-company_multi <- read.csv("data_clean/company_db_multi.csv")
-company_multi$licensee_type <- "company"
+### Company list with multiple entires, also scraped from RSelenium
+#company_multi <- read.csv("data_clean/company_db_multi.csv")
+#company_multi$licensee_type <- "company"
 ## Other licensee master list
 other_licensee <- read.csv("data_indices/other_licensee.csv")
 other_licensee$licensee_type <- "other"
@@ -23,9 +23,9 @@ agreement <- read.csv("data_indices/agreements.csv")
 
 # --- Checking the data: Do we have our "official names" right? ----
 ## Crops
-length(unique(crop$crop_name_common)) # we have 88 crops on our master list
-length(unique(license$crop_name_common)) # have 81 in the licenses, which tends to be off when there are some in progess
-# It looks like we have all matches, which is good
+length(unique(crop$crop_name_common)) # we have 158 crops on our master list
+length(unique(license$crop_name_common)) # have 177 in the licenses
+# Here are the differences
 unique(license$crop_name_common[!(license$crop_name_common %in% unique(crop$crop_name_common))])
 
 ## There will be one cell just called Berries
@@ -157,78 +157,84 @@ length(unique(other_licensee$official_name)) # There are 97 here
 
 ## Fixing multi ----
 
-company_multi$rev <- str_remove_all(company_multi$revenue, "\\$|\\,")
-company_multi$rev <- ifelse(str_detect(company_multi$rev, "million"), 
-                      paste0(str_remove_all(company_multi$rev, "\\.|million|\\s"), "00000"),
-                      ifelse(str_detect(company_multi$rev, "billion"), 
-                             paste0(str_remove_all(company_multi$rev, "\\.|billion|\\s"), "0000000"),
-                             company_multi$rev))
-company_multi$rev <- as.numeric(company_multi$rev)
-company_multi$employees <- as.numeric(str_remove_all(company_multi$employees, "\\,"))
+#company_multi$rev <- str_remove_all(company_multi$revenue, "\\$|\\,")
+#company_multi$rev <- ifelse(str_detect(company_multi$rev, "million"), 
+#                      paste0(str_remove_all(company_multi$rev, "\\.|million|\\s"), "00000"),
+#                      ifelse(str_detect(company_multi$rev, "billion"), 
+#                             paste0(str_remove_all(company_multi$rev, "\\.|billion|\\s"), "0000000"),
+#                             company_multi$rev))
+#company_multi$rev <- as.numeric(company_multi$rev)
+#company_multi$employees <- as.numeric(str_remove_all(company_multi$employees, "\\,"))
 
-countries <- c("Spain", "Australia", "Chile", "Japan", "Italy",
-               "New Zealand", "Belgium", "Bermuda", "United Kingdom",
-               "Germany", "Netherlands", "Canada", "Norway", "France")
-countries.p <- paste(countries, collapse = "|")
-states <- read.csv("data_indices/states_abbr.csv")
-
-location <- c()
-for(j in 1:nrow(company_multi)){
-  for(i in 1:nrow(states)){
-    if(!is.na(company_multi$address[j]) &  
-       str_detect(company_multi$address[j], paste0("\\s", states$abbr[i], ","))){
-      location[j] <- states$state[i]
-    } else {
-      next
-    }
-  }
-}
-
-location <- c(location, rep("", nrow(company_multi) - length(location)))
-company_multi$company_location <- location
-company_multi$company_location <- ifelse(is.na(company_multi$company_location), 
-                                   str_extract(company_multi$address, countries.p), company_multi$company_location)
-company_multi$location <- ifelse(company_multi$company_location == "", NA, company_multi$company_location)
-
-company_multi$domestic <- ifelse(company_multi$location %in% countries, F, T)
-table(company_multi$domestic)
-
-multi_nats <- c("Syngenta Seeds, Inc.", "Bayer CropScience LP", "Syngenta Crop Protection, LLC",
-                "BASF Agrochemical Products BV", "Bayer Corportation", "Bayer", "Syngenta",
-                "BASF Corportation", "Monsanto Company", "West Bred Inc a Division of Monsanto",
-                "BASF Plant Science, LP", "BASF Agricultural Solutions Seed", "Planasa")
-
-company_multi$domestic <- ifelse(company_multi$official_name %in% multi_nats, F, company_multi$domestic)
-table(company_multi$domestic)
-
-colnames(company_multi)
-keep <- company_multi %>% 
-  mutate(duplicates = duplicated(id)) %>% 
-  filter(duplicates == F) %>% 
-  select(c(id:industry, website, notes, licensee_type, domestic))
-keep$address <- ""
-keep$revenue <- ""
-keep$company_location <- "multiple"
-keep$location <- "multiple"
-
-company_multi <- company_multi %>% 
-  group_by(id) %>% 
-  summarize(rev = sum(rev, na.rm = T),
-            employees = sum(employees, na.rm = T),
-            year_started = min(year_started),
-            year_inc = min(year_inc),
-            esg_rank = mean(esg_rank, na.rm = T))
-
-company_multi <- left_join(keep, company_multi)
-company_multi <- rename(company_multi, "licensee" = "official_name")
-company_multi$licensee <- str_remove_all(tools::toTitleCase(trimws(company_multi$licensee)), 
-                                   "[:punct:]")
+#countries <- c("Spain", "Australia", "Chile", "Japan", "Italy",
+#               "New Zealand", "Belgium", "Bermuda", "United Kingdom",
+#               "Germany", "Netherlands", "Canada", "Norway", "France")
+#countries.p <- paste(countries, collapse = "|")
+#states <- read.csv("data_indices/states_abbr.csv")
+#
+#location <- c()
+#for(j in 1:nrow(company_multi)){
+#  for(i in 1:nrow(states)){
+#    if(!is.na(company_multi$address[j]) &  
+#       str_detect(company_multi$address[j], paste0("\\s", states$abbr[i], ","))){
+#      location[j] <- states$state[i]
+#    } else {
+#      next
+#    }
+#  }
+#}
+#
+#location <- c(location, rep("", nrow(company_multi) - length(location)))
+#company_multi$company_location <- location
+#company_multi$company_location <- ifelse(is.na(company_multi$company_location), 
+#                                   str_extract(company_multi$address, countries.p), #company_multi$company_location)
+#company_multi$location <- ifelse(company_multi$company_location == "", NA, company_multi$company_location)
+#
+#company_multi$domestic <- ifelse(company_multi$location %in% countries, F, T)
+#table(company_multi$domestic)
+#
+#multi_nats <- c("Syngenta Seeds, Inc.", "Bayer CropScience LP", "Syngenta Crop Protection, LLC",
+#                "BASF Agrochemical Products BV", "Bayer Corportation", "Bayer", "Syngenta",
+#                "BASF Corportation", "Monsanto Company", "West Bred Inc a Division of Monsanto",
+#                "BASF Plant Science, LP", "BASF Agricultural Solutions Seed", "Planasa")
+#
+#company_multi$domestic <- ifelse(company_multi$official_name %in% multi_nats, F, company_multi$domestic)
+#table(company_multi$domestic)
+#
+#colnames(company_multi)
+#keep <- company_multi %>% 
+#  mutate(duplicates = duplicated(id)) %>% 
+#  filter(duplicates == F) %>% 
+#  select(c(id:industry, website, notes, licensee_type, domestic))
+#keep$address <- ""
+#keep$revenue <- ""
+#keep$company_location <- "multiple"
+#keep$location <- "multiple"
+#
+#company_multi <- company_multi %>% 
+#  group_by(id) %>% 
+#  summarize(rev = sum(rev, na.rm = T),
+#            employees = sum(employees, na.rm = T),
+#            year_started = min(year_started),
+#            year_inc = min(year_inc),
+#            esg_rank = mean(esg_rank, na.rm = T))
+#
+#company_multi <- left_join(keep, company_multi)
+#company_multi <- rename(company_multi, "licensee" = "official_name")
+#company_multi$licensee <- str_remove_all(tools::toTitleCase(trimws(company_multi$licensee)), 
+#                                   "[:punct:]")
 
 # Merge ----
 company <- rename(company, "licensee" = "official_name")
 other_licensee <- other_licensee %>% 
   rename("licensee" = "official_name") %>% 
   select(licensee, type, licensee_type)
+# Need to read in other companies
+length(unique(company$licensee)) # we have 914 on the downloaded list
+length(unique(other_licensee$licensee)) # 139 on other
+914+139
+length(unique(license$licensee)) # have 1300 on the licenses
+
 
 license$licensee <- str_remove_all(tools::toTitleCase(trimws(license$licensee)),
                                    "[:punct:]")
