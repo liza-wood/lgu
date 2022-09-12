@@ -184,8 +184,17 @@ db_full <- db_full %>%
   # Right now this gets rid of the 3 from the dbh scrape that I don;t know what they are
   filter(!is.na(official_name))
 
+# TO DO: 
+## 1. Still missing
+nothing <- select(nolinks, official_name, other_link, state) %>% 
+  filter(is.na(state))
+nolinks <- select(nolinks, official_name, other_link, state) %>% 
+  rename(address = state, link = other_link) %>% 
+  filter(!is.na(address))
+db_full <- full_join(db_full, nolinks) # 30 just cannot be found, another 118 have no dnb
 write.csv(db_full, "data_clean/company_db_full.csv", row.names = F)
+write.csv(nothing, "data_clean/company_nothing", row.names = F)
 
-
+#still missing = 22 and nothing = 30 --> 52 that should have no trace
 
 
