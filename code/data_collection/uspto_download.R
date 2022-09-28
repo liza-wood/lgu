@@ -10,7 +10,7 @@ uni_names <- read.csv("data_indices/universities2.csv")
 getOption('timeout')
 options(timeout=1200)
 
-# Download all of the patents for 1976 to 2020
+# Download all of the patents for 1976 to 2020 -- did this in chunks
 for(i in 2019){ 
   for(j in c(1:52)){ 
     get_bulk_patent_data(
@@ -53,7 +53,8 @@ pt <- pt %>%
         str_detect(tolower(Assignee),"university|virginia tech|college") ~ T,
         T ~ F)) %>%
       mutate(university = case_when(
-        Assignee == "University Patents, Inc." ~ F, T ~ university)) %>% 
+        Assignee == "University Patents, Inc." ~ F, 
+        T ~ university)) %>% 
       mutate(lgu = case_when(
         str_detect(tolower(Assignee), uni_names_p) ~ T, 
         T ~ F)) %>%

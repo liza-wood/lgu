@@ -29,6 +29,7 @@ for(i in 1:nrow(df)){
 df <- filter(df, !(str_detect(df$Title, "[Mm]ethod|[Aa]pparatus|[Pp]rocess")) &
                !(str_detect(df$Claims, "1\\. A method")))
 
+### TRY TO ID CROPS 
 write.csv(df, "data_clean/uspto_lgus.csv", row.names = F)
 
 # Plant patents definitely stay, but how to get utility patents

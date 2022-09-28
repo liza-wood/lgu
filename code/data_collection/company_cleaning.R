@@ -1,22 +1,23 @@
 # Company cleaning script
 # Bring together database_h with others to combine and make sure we have all we can
 library(dplyr)
+library(stringr)
 
 # The main "master" list before any scraping
-## 1129 companies on our master list
+## 1128 companies on our master list
 master <- read.csv("data_indices/company.csv") 
-## 147 of them have no link
+## 149 of them have no link
 nolinks <- master %>% filter(is.na(dnb_link)) 
-# This leaves, in theory, 982 companies that should have db information
+# This leaves, in theory, 979 companies that should have db information
 master_links <- master %>% filter(!is.na(dnb_link))  
-nrow(master_links)
 
 # Verify based on what is in licenses
 license <- read.csv("data_clean/license.csv") %>% 
   filter(!is.na(crop_name_common))
 other_licensee <- read.csv("data_indices/other_licensee.csv")
+length(unique(license$licensee)) - nrow(other_licensee) - nrow(nolinks)
 # Once you remove licensees that are not companies and have no official link
-# we have 990 licensees to get data for
+# we have 965 licensees to get data for
 needtomatch <- license %>% 
   filter(!(licensee %in% other_licensee$official_name)) %>% 
   filter(!(licensee %in% nolinks$official_name)) %>% 
@@ -24,14 +25,16 @@ needtomatch <- license %>%
   filter(!is.na(licensee)) %>% 
   unique()
 nrow(needtomatch)
-# off from company_index by 8 -- need to figure
+# off from above calculation by 11, unsure what those are 
 
+# Now I am putting together the multiple versions of the scraped company databases I have
 # 1. This scrape is ideally the most comprehensive, but did not get everything
 ## 918 records -- so missing something like ~70 records
 ## It also does not have exact names
 db_h <- read.csv("data_clean/company_db_h.csv")
+db_h$db_type <- "herbert"
 
-# 2. These lists were scraped from X public facing in two rounds
+# 2. These lists were scraped from X public facing in three rounds
 ## These lists have official names associated
 first <- read.csv("data_clean/company_db.csv") %>% 
   filter(!is.na(name))
@@ -42,7 +45,10 @@ first_multi <- read.csv("data_clean/company_db_multi.csv") %>%
   select(-duplicate) 
 second <- read.csv("data_clean/company_db_2.csv") %>% 
   filter(!is.na(name)) 
-db_public <- rbind(first, first_multi, second) 
+third <- read.csv("data_clean/company_db_3.csv") %>% 
+  filter(!is.na(name))
+db_public <- rbind(first, first_multi, second, third) 
+db_public$db_type <- "public"
 
 ## Removed because overlap -- these were eventually removed from the master index, but
 ## they remained from the first public scrape
@@ -51,31 +57,29 @@ rm <- c("Johnson Seed Co. (now part Seed of NWGG)", # is NWGG
         "Whitgro, Inc.", # is NWGG
         "Discovery Garden's, LLC", "Cal-Ore Seed, Inc.") # Is California-Oregon
 db_public <- filter(db_public, !(official_name %in% rm))
+## Correcting misspellings
 db_public$official_name[db_public$official_name == "Birdsong Coorporation"] <- "Birdsong Corporation"
+db_public$official_name[db_public$official_name == "Proven Winners North Amercia, LLC"] <- "Proven Winners North America, LLC"
 # Try to add on "official_name" to db_h when possible by merging the two
 db_public_slim <- db_public %>% select(official_name, name, description)
 db_public_slim$name <- trimws(str_remove_all(db_public_slim$name, "\\.|\\,"))
-db_full <- db_h %>% select(-official_name) %>% 
+db_h <- db_h %>% select(-official_name) %>% 
   mutate(name = trimws(str_remove_all(name, "\\.|\\,"))) %>% 
   left_join(db_public_slim)
 
 # These are the database records where the name in the db did not match the
 # official name on the master, and I forgot to align them
-need_official <- db_full %>% filter(is.na(official_name)) %>% unique()
+need_official <- db_h %>% filter(is.na(official_name)) %>% unique()
 need_official$name
+
 # Should be removed because exists under other name
 ## Bros Holding Company, LLC -- Blue River
-
 # Should be removed because I have no idea what it is
 ## NEW ZEALAND LIMITED - maybe berries?
 ## WAIKOKOWAI FARMS LIMITED
 
-# Accidentally on here
-## Wisconsin Crop Improvement Association
-## South Dakota Crop Improvement Association
-
 # I have to do this because when I scraped XH in a hurry I wasn't able to track official_name, so now I need to go figure out what official name it was actually referencing
-db_full <- db_full %>% 
+db_h <- db_h %>% 
   mutate(official_name = case_when(
     name =="Altria Client Services LLC" ~ "Altria Client Services Inc.",                                  
     name =="Bayer Cropscience Inc" ~ "Bayer CropScience LP",                                             
@@ -158,43 +162,52 @@ db_full <- db_full %>%
     name == "Norcal Nursery Inc" ~ "NorCal Nursery", # Don't know if it is Inc or LLC
     name == "Nourse Farm" ~ "Nourse Farms, Inc.",
     name == "CHS Inc" ~ "CHS SunBasin Growers",
+    official_name == "Glibert's Nursery, Inc." ~ "Gilbert's Nursery, Inc.",
     T ~ official_name
   )) 
 
 # These are the manual adjustments that I missed
-missing_manual <- anti_join(db_full, master, by = "official_name")
+missing_manual <- anti_join(db_h, master, by = "official_name")
 # These are then what is missing in the db_h
-missing_db_h <- anti_join(master_links, db_full, by = "official_name") %>% select(official_name, dnb_link)
+missing_db_h <- anti_join(master_links, db_h, by = "official_name") %>% select(official_name, dnb_link)
 
 # Can I find them from the data I have from the public db?
 missing_db_h <- left_join(missing_db_h, db_public, by = "official_name")
 # This is what I can take from public-facing and add to h
-add_to_db_full <-  missing_db_h %>% filter(!is.na(name)) %>% 
+add_to_db_h <-  missing_db_h %>% filter(!is.na(name)) %>% 
   select(name, website, industry, address, employees, revenue, 
-         dnb_link, year_started, official_name) %>% 
+         dnb_link, year_started, official_name, db_type) %>% 
   rename(local_employee_number = employees, local_sales_number = revenue,
          yr_founded = year_started, link = dnb_link)
-db_full <- full_join(db_full, add_to_db_full)
+db_h <- full_join(db_h, add_to_db_h)
 
 # These are links that I didn't get from public facing and so don't have data for
 still_missing <-  missing_db_h %>% filter(is.na(name))
 ## Could scrape again?? for address
 
-db_full <- db_full %>% 
+db_h <- db_h %>% 
   # Right now this gets rid of the 3 from the dbh scrape that I don;t know what they are
   filter(!is.na(official_name))
 
-# TO DO: 
-## 1. Still missing
 nothing <- select(nolinks, official_name, other_link, state) %>% 
-  filter(is.na(state))
+  filter(is.na(state)) %>% 
+  mutate(db_type = "cannot find")
 nolinks <- select(nolinks, official_name, other_link, state) %>% 
   rename(address = state, link = other_link) %>% 
-  filter(!is.na(address))
-db_full <- full_join(db_full, nolinks) # 30 just cannot be found, another 118 have no dnb
-write.csv(db_full, "data_clean/company_db_full.csv", row.names = F)
-write.csv(nothing, "data_clean/company_nothing", row.names = F)
+  filter(!is.na(address)) %>% 
+  mutate(db_type = "no link but location")
+db_full <- full_join(db_h, nolinks) %>% full_join(nothing)# 30 just cannot be found, another 119 have no db links but still have locations
+table(db_full$db_type)
 
-#still missing = 22 and nothing = 30 --> 52 that should have no trace
+# Then there are the ones from NC that didn't make it to master, so for now I will categorize these as mistakes
+mistakes <- read.csv("data_indices/mistakes.csv") %>% 
+  select(official_name) %>% 
+  mutate(db_type = "mistake")
+db_full <- full_join(db_full, mistakes)
+write.csv(db_full, "data_clean/company_db_full.csv", row.names = F)
+
+#nothing = 30; don't know at all
+#no links = 119; found their website but no D&B trace
+#40 mistakes
 
 

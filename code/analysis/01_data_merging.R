@@ -6,151 +6,123 @@ setwd("~/Box/lgu")
 # Read in data
 ## Licensing data
 license <- read.csv("data_clean/license.csv") %>% 
-  filter(!is.na(crop_name_common))# removing inventions
+  filter(!is.na(crop_name_common)) %>%  # removing inventions
+  filter(crop_name_common != "Unknown") # removing the few unknown crops from NH
 ## Company database, scraped with RSelenium
-company <- read.csv("data_clean/company_db_full.csv")
+company <- read.csv("data_clean/company_db_full.csv") %>% 
+  unique() %>% 
+  rename(company_type = type)
 company$licensee_type <- "company"
 ## Other kinds of licensees
 other_licensee <- read.csv("data_indices/other_licensee.csv")
 other_licensee$licensee_type <- "other"
 ## Crop master list
-crop <- read.csv("data_indices/crop.csv")
+crop <- read.csv("data_indices/crop.csv") %>% 
+  select(crop_name_common:orn_use)
 ## Agreement master list
 agreement <- read.csv("data_indices/agreements.csv")
 
 # --- Checking the data: Do we have our "official names" right? ----
 ## Crops ----
-length(unique(crop$crop_name_common)) # we have 157 crops on our master list
-length(unique(license$crop_name_common)) # have 177 in the licenses
+# Crops indexed into categories based on FAO https://www.fao.org/3/a0135e/A0135E10.htm#app3
+length(unique(crop$crop_name_common)) # we have 168 crops on our master list
+length(unique(license$crop_name_common)) # have 165 in the licenses
 # Here are the differences: the crops in common that are not in the master list
 unique(license$crop_name_common[!(license$crop_name_common %in% unique(crop$crop_name_common))])
-
-## There will be one cell just called Berries
-minorberry <- c("Black chokeberry", "Black raspberry", "Brambleberry")
-majorberry <- c("Blackberry", "Blueberry", "Red raspberry", "Strawberry", "Berries")
-forage <- c("Alfalfa")
-lawngrass <- c("Bermuda grass", "Bermuda grass hybrid", 
-               "Creeping Bentgrass", "Lawngrass",
-               "St. Augustine grass")
-orngrass <- c("Crowngrass", "Elephant grass", "Meadow Bromegrass", 
-              "Prairie cord grass", "Switchgrass", "Timothy grass",
-              "Smooth cordgrass")
-ornshrub <- c("Bay Cherry","Butterfly bush", "Crape myrtle",  "Indian shot",
-              "Japanese barberry", "Leadtree", "Lily of the Incas", "Pincushions",
-              "Prayer plant", "Rhododendron", "Sand cherry", "Sweet fern", "Sweetgale",
-              "Witherod Viburnum", "Eastern White Cedar")
-grape <- c("Grape (currant) rootstock", 
-           "Grape (riverbank) rootstock", "Grape (rufo) rootstock")
-nuttree <- c("Almond", "Walnut", "Walnut rootstock", "Pistachio")
-stonefruit <- c("Cherry (sour)", "Cherry (sweet)", "Peach",
-                "Peach rootstock", "Prune Plum")
-fruittree <- c("Apple", "Fig", "Papaya", "Pear", "Black fig")
-fieldcrops <- c("Corn", "Cotton", "Soybean")
-minorgrain <- c("Barley", "Durum wheat", "Nude oats", 
-                "Oat", "Pearl millet", "Sorghum", "Teff",
-                "Rye", "Sea oats")
-majorgrain <- c("Asian rice", "Wheat", "Soft red wheat", "Rice", "Long grain rice")
-legume <- c("Black-eyed pea", "Dry bean", "Faba bean", "Pea", "Peanut")
-oilseed <- c("Camelina", "Safflower", "Winter canola")
-rootstarch <- c("Potato", "Sweet potato", "Taro")
-vegetable <- c("Sweet and chili pepper")
-other <- c("Stevia")
-
+unique(crop$crop_name_common[!(crop$crop_name_common %in% unique(license$crop_name_common))])
 
 license <- license %>% 
-  mutate(crop = case_when(
-    crop_name_common %in% minorberry ~ "Berry (minor)",
-    crop_name_common %in% majorberry ~ "Berry (major)",
-    crop_name_common %in% forage ~ "Other",
-    crop_name_common %in% lawngrass ~ "Lawn grass",
-    crop_name_common %in% orngrass ~ "Ornamental",
-    crop_name_common %in% ornshrub ~ "Ornamental",
-    crop_name_common %in% grape ~ "Grape",
-    crop_name_common %in% nuttree ~ "Nut tree",
-    crop_name_common %in% fruittree ~ "Fruit tree (other)",
-    crop_name_common %in% stonefruit ~ "Fruit tree (stone fruit)",
-    crop_name_common %in% fieldcrops ~ "Field crops",
-    crop_name_common %in% minorgrain ~ "Grain (minor)",
-    crop_name_common %in% majorgrain ~ "Grain (major)",
-    crop_name_common %in% legume ~ "Legume",
-    crop_name_common %in% oilseed ~ "Oil seed",
-    crop_name_common %in% rootstarch ~ "Roots and starches",
-    crop_name_common %in% other ~ "Other",
-    crop_name_common %in% vegetable ~ "Vegetable",
-    T ~ "Missing"
+  left_join(crop) %>% 
+  unique() %>% 
+  mutate(crop_cat = case_when(
+    fao_class1 == "sugar_crops" ~ "Sugar, spice & medicinal",
+    fao_class1 == "spice_crops" ~ "Sugar, spice & medicinal",
+    fao_class1 == "medicinal" ~ "Sugar, spice & medicinal",
+    fao_class1 == "cereals" ~ "Cereals",
+    fao_class1 == "fruits_nuts" ~ "Fruits & nuts",
+    fao_class1 == "grasses_fodder" ~ "Grasses & fodder",
+    fao_class1 == "leguminous" ~ "Leguminous",
+    fao_class1 == "non_food" ~ "Non-food (cotton & tabacco)",
+    fao_class1 == "oilseeds" ~ "Oilseeds",
+    fao_class1 == "root_tuber" ~ "Roots & tubers",
+    fao_class1 == "veg_melon" ~ "Vegetables & melons",
+    ornamental == T ~ "Ornamental",
+    T ~ fao_class1
   ))
 
-table(license$crop)
+table(license$crop_cat)
 
-license <- license %>% 
-  mutate(crop_intermed = case_when(
-    crop_name_common %in% minorberry ~ "Berry",
-    crop_name_common %in% majorberry ~ "Berry",
-    crop_name_common %in% forage ~ "Other",
-    crop_name_common %in% lawngrass ~ "Ornamental",
-    crop_name_common %in% orngrass ~ "Ornamental",
-    crop_name_common %in% ornshrub ~ "Ornamental",
-    crop_name_common %in% grape ~ "Perennial (fruit)",
-    crop_name_common %in% nuttree ~ "Perennial (nut)",
-    crop_name_common %in% fruittree ~ "Perennial (fruit)",
-    crop_name_common %in% stonefruit ~ "Perennial (fruit)",
-    crop_name_common %in% fieldcrops ~ "Field crops",
-    crop_name_common %in% minorgrain ~ "Grain (minor)",
-    crop_name_common %in% majorgrain ~ "Grain (major)",
-    crop_name_common %in% legume ~ "Legume",
-    crop_name_common %in% oilseed ~ "Oil seed",
-    crop_name_common %in% rootstarch ~ "Roots and starches",
-    crop_name_common %in% other ~ "Other",
-    crop_name_common %in% vegetable ~ "Other",
-    T ~ "Missing"
-  ))
-
-license <- license %>% 
-  mutate(crop_fewer = case_when(
-    crop_name_common %in% minorberry ~ "Berry",
-    crop_name_common %in% majorberry ~ "Berry",
-    crop_name_common %in% forage ~ "Other",
-    crop_name_common %in% lawngrass ~ "Ornamental", #Lawn grass",
-    crop_name_common %in% orngrass ~ "Ornamental",
-    crop_name_common %in% ornshrub ~ "Ornamental",
-    crop_name_common %in% grape ~ "Perennial (fruit/nut)",
-    crop_name_common %in% nuttree ~ "Perennial (fruit/nut)",
-    crop_name_common %in% fruittree ~ "Perennial (fruit/nut)",
-    crop_name_common %in% stonefruit ~ "Perennial (fruit/nut)",
-    crop_name_common %in% fieldcrops ~ "Field crops",
-    crop_name_common %in% minorgrain ~ "Grain",
-    crop_name_common %in% majorgrain ~ "Grain",
-    crop_name_common %in% legume ~ "Legume",
-    crop_name_common %in% oilseed ~ "Oil seed",
-    crop_name_common %in% rootstarch ~ "Roots (starch)",
-    T ~ "Other"
-  ))
-
-table(license$crop_fewer)
 
 ## Agreement types ----
 length(unique(agreement$official_name)) # we have 15 agreement types on our master list
-length(unique(license$agreement_type)) # But we have 12 in our licenses...
+length(unique(license$agreement_type)) # But we have 22 in our licenses
 table(agreement$official_name)
 table(license$agreement_type)
 
 # For now I will ID these as unspecified
+exl <- c("Amendment: License: Plant: Exclusive: New IP",
+         "Exclusive",
+         "Exclusive License",
+         "Exclusive Option")
+nexl <- c("Amendment: License: Plant: Non-Exclusive: New IP",
+          "Non- Exclusive Option",
+          "Master; non-exclusive",
+          "Non- Exclusive License")
 unsp <- c("Amended and restated license", 
           "Assignment license", 
+          "Commercial Germplasm",
           "Exclusive + Non-Exclusive",
           "Experimental license", 
           "Interinstitutional agreement", 
           "License agreement",
+          "License: Plant: Hybrid",
+          "License: Plant: Parental Use",
           "Master agreement",
           "Sublicense")
+license$agreement_type[license$agreement_type %in% exl] <- "Exclusive license"
+license$agreement_type[license$agreement_type %in% nexl] <- "Non-exclusive license"
 license$agreement_type[license$agreement_type %in% unsp] <- "Unspecified license"
 table(license$agreement_type)
 
 
 ## Licensees (companies and other) ----
-length(unique(company$official_name)) ; nrow(company) # we have 427 in both
+table(company$db_type)
+company <- unique(select(company, - c(link, description)))
+length(unique(company$official_name)) ; nrow(company) # 1164 and 1192, which means we have a lot of duplicates
+duplicates <- company$official_name[which(duplicated(company$official_name))] # any duplications?
+unique(sort(duplicates))
+rpl_na <- function(x){ifelse(x == "", NA, x)}
+company <- data.frame(sapply(company, rpl_na))
+
+dup_df <- data.frame()
+for(i in unique(sort(duplicates))){
+  dups <- filter(company, official_name == i)
+  nas <- data.frame(apply(dups, 1, is.na))
+  sums <- data.frame("totals" = apply(nas, 2, sum)) 
+  morenas <- which(sums$total == max(sums$total))
+  higher_emp <- which(dups$total_employee_number == max(dups$total_employee_number))
+  older <- which(dups$yr_founded == min(dups$yr_founded))
+  if(length(morenas) == 1){
+    solo <- dups[morenas,]
+  } else if (length(higher_emp) == 1){
+    solo <- dups[higher_emp,]
+  } else if (length(older) == 1){
+    solo <- dups[older,]
+    } else {
+      solo <- dups # cannot filter yet
+    }
+  dup_df <-rbind(dup_df, solo)
+}
+
+# Need to manually choose for Beck's
+dup_df <- filter(dup_df, !(official_name == "Beck's Superior Hybrids" & is.na(incorp_location)))
+
+company <- company %>% filter(!(official_name %in% duplicates)) %>% 
+  rbind(dup_df)
 company$official_name[which(duplicated(company$official_name))] # any duplications?
-# LOADS
+# Nope
+length(unique(company$official_name)) ; nrow(company)
+# 1164 companies in the company master list
 
 countries <- c("Spain", "Australia", "Chile", "Japan", "Italy",
                "New Zealand", "Belgium", "Bermuda", "United Kingdom",
@@ -164,23 +136,17 @@ countries <- c("Spain", "Australia", "Chile", "Japan", "Italy",
 countries.p <- paste(countries, collapse = "|")
 states <- read.csv("data_indices/states_abbr.csv")
 
-#multi_nats <- c("Syngenta Seeds, Inc.", "Bayer CropScience LP", "Syngenta Crop Protection, LLC",
-#                "BASF Agrochemical Products BV", "Bayer Corportation", "Bayer", "Syngenta",
-#                "BASF Corportation", "Monsanto Company", "West Bred Inc a Division of Monsanto",
-#                "BASF Plant Science, LP", "BASF Agricultural Solutions Seed", "Planasa")
-#
-
 # Merge ----
 company <- rename(company, licensee = official_name)
 other_licensee <- other_licensee %>% 
   rename(licensee = official_name) %>% 
   select(licensee, type, licensee_type)
 # Need to read in other companies
-length(unique(company$licensee)) # we have 1075 on the downloaded list
-length(unique(other_licensee$licensee)) # 140 on other
-1075+140
-length(unique(license$licensee)) # have 1266 on the licenses -- still 22 in the still_missing from company_cleaning and 30 just don't have any data
-1266-(22+30)
+length(unique(company$licensee)) # we have 1164 on the downloaded master list
+length(unique(other_licensee$licensee)) # 141 on other
+1164+141 # 1305
+length(unique(license$licensee)) 
+1305-1257 # 48 missing
 
 license$licensee <- str_remove_all(tools::toTitleCase(trimws(license$licensee)),
                                    "[:punct:]")
@@ -235,9 +201,9 @@ location <- c()
 for(j in 1:nrow(company)){
   for(i in 1:nrow(states)){
     if(!is.na(company$address[j]) &  
-       str_detect(company$address[j], paste0("\\s", states$abbr[i], ",")) |
+       (str_detect(company$address[j], paste0("\\s", states$abbr[i], ",")) |
        str_detect(company$address[j], paste0("\\b", states$abbr[i])) |
-       str_detect(company$address[j], states$state[i])){
+       str_detect(company$address[j], states$state[i]))){
       location[j] <- states$state[i]
     } else {
       next
@@ -257,8 +223,8 @@ table(company$domestic)
 summary(company$local_sales_number)
 company <- company %>% 
   mutate(company_size = case_when(
-    local_sales_number <= 220000 ~ "Very small (<$220K)",
-    local_sales_number > 220000 & local_sales_number <= 1000000 ~ "Small ($220K - $1M)",
+    local_sales_number <= 200000 ~ "Very small (<$200K)",
+    local_sales_number > 200000 & local_sales_number <= 1000000 ~ "Small ($220K - $1M)",
     local_sales_number > 1000000 & local_sales_number <= 10000000 ~ "Medium ($1M - $10M)",
     local_sales_number > 10000000 ~ "Large ($10M+)",
     T ~ "Unknown"
@@ -268,59 +234,59 @@ table(company$company_size)
 # Which companies are in the license list but not the database?
 mistakes <- unique(license$licensee[!(license$licensee %in% unique(company$licensee) | 
                                         license$licensee %in% unique(other_licensee$licensee))])
-#still missing = 22 and nothing = 30 --> 52 that should have no trace
-mistakes
-113-52 # 61 that are actually in the licenses that I don't have record of
+sort(unique(mistakes)) # These are three that I didn't get in the third public scrape; could have
 
 df <- merge(license, company, by = c('licensee'), all.x=TRUE)
-df <- merge(df, other_licensee, by = c('licensee'), all.x = TRUE)
+df <- merge(df, other_licensee, by = c('licensee'), all.x = TRUE) %>% unique()
+# This has 73 fewer than original -- maybe that is because of the 5 mistakes?
 df <- df %>% 
   mutate(licensee_type = case_when(
     is.na(licensee_type.x) & !is.na(licensee_type.y) ~ licensee_type.y,
     T ~ licensee_type.x
   )) %>% 
-  select(-c(licensee_type.x, licensee_type.y, notes))
+  select(-c(licensee_type.x, licensee_type.y, notes)) %>% 
+  unique() %>% 
+  mutate(domestic = ifelse(is.na(domestic), F, T))
 table(df$licensee_type)
 
-table(company$company_size)
-table(df$company_size)
 df$company_size <- ifelse(df$licensee_type == "other", "Non-company", df$company_size)
 table(df$company_size)
 
 
-western <- toupper(c("California", "Oregon", "Washington", "Idaho", "Nevada",
+western <- c("California", "Oregon", "Washington", "Idaho", "Nevada",
                      "Arizona", "Utah", "New Mexico", "Colorado", "Wyoming", "Montana",
-                     "Alaska", "Hawaii"))
-northcentral <- toupper(c("North Dakota", "South Dakota", "Kansas",
+                     "Alaska", "Hawaii")
+northcentral <- c("North Dakota", "South Dakota", "Kansas",
                           "Nebraska", "Minnesota", "Iowa", "Missouri", "Wisconsin", 
-                          "Illinois", "Michigan", "Indiana", "Ohio"))
-southern <- toupper(c("Texas", "Oklahoma", "Arkansas", "Louisiana", 
+                          "Illinois", "Michigan", "Indiana", "Ohio")
+southern <- c("Texas", "Oklahoma", "Arkansas", "Louisiana", 
                       "Kentucky", "Tennessee", "Mississippi", "Alabama", "Florida", 
-                      "Georgia", "South Carolina", "North Carolina", "Virginia"))
-northeast <- toupper(c("West Virginia", "Maryland", "Delaware", 
+                      "Georgia", "South Carolina", "North Carolina", "Virginia")
+northeast <- c("West Virginia", "Maryland", "Delaware", 
                        "New Jersey", "Pennsylvania", "New York", "Connecticut", 
-                       "Rhode Island", "Massachusetts", "Vermont", "New Hampshire", "Maine"))
+                       "Rhode Island", "Massachusetts", "Vermont", "New Hampshire", "Maine")
 
-
+sum(table(df$domestic))
 df <- df %>% 
   mutate(uni_region = case_when(
-    state %in% western ~ "West",
-    state %in% northcentral ~ "North Central",
-    state %in% northeast ~ "Northeast",
-    state %in% southern ~ "South",
+    uni_state %in% western ~ "West",
+    uni_state %in% northcentral ~ "North Central",
+    uni_state %in% northeast ~ "Northeast",
+    uni_state %in% southern ~ "South",
     T ~ "Unknown"
   )) %>% 
   mutate(company_region = case_when(
-    location %in% western ~ "West",
-    location %in% northcentral ~ "North Central",
-    location %in% northeast ~ "Northeast",
-    location %in% southern ~ "South",
     domestic == F ~ "International",
+    company_location %in% western ~ "West",
+    company_location %in% northcentral ~ "North Central",
+    company_location %in% northeast ~ "Northeast",
+    company_location %in% southern ~ "South",
     T ~ "Unknown"
   )) %>% 
   mutate(spatial_match = case_when(
     uni_region == company_region ~ "Within region",
     company_region == "Unknown" ~ "Unknown",
+    company_type == "Non-company" ~ "Unknown",
     uni_region != company_region ~ "Outside region",
     T ~ "Unknown"
   ))
@@ -334,7 +300,7 @@ table(df$spatial_match)
 top10uni <- c("New York", "California", "Texas", "Iowa", "Illinois", "Florida",
               "Indiana", "Ohio", "North Carolina") # Georgia and Washington?
 
-df$topuni <- ifelse(df$state %in% top10uni, T, F)
+df$topuni <- ifelse(df$uni_state %in% top10uni, T, F)
 
 
 write.csv(df, "data_clean/merged_df.csv", row.names = F)

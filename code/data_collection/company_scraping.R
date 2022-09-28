@@ -20,9 +20,9 @@ company_nolink <- filter(company, is.na(dnb_link))
 company_multilink <- filter(company, !is.na(dnb_link2))
 company <- filter(company, !is.na(dnb_link), is.na(dnb_link2))
 
-
+## Run this twice to get rid of cookies
 #http://joshuamccrain.com/tutorials/web_scraping_R_selenium.html
-rD <- rsDriver(browser = "firefox", port = 4445L)
+rD <- rsDriver(browser = "firefox", port = 4567L)
 # This should open a firefox browser
 remDr <- rD[["client"]]
 remDr$deleteAllCookies()
@@ -31,7 +31,7 @@ rD$server$stop()
 rm(rD, remDr)
 gc()
 
-rD <- rsDriver(browser = "firefox", port = 4445L)
+rD <- rsDriver(browser = "firefox", port = 4567L)
 # This should open a firefox browser
 remDr <- rD[["client"]]
 remDr$getAllCookies()
@@ -43,9 +43,10 @@ for(i in 1:nrow(company)){
   url <- company$dnb_link[i]
   notes <- company$notes[i]
   remDr$navigate(url)
-  if(i %% 9 == 0) {Sys.sleep(57)}
-  else if(i %% 16 == 0) {Sys.sleep(34)}
-  else {Sys.sleep(12)}
+  Sys.sleep(65)
+  #if(i %% 9 == 0) {Sys.sleep(57)}
+  #else if(i %% 16 == 0) {Sys.sleep(34)}
+  #else {Sys.sleep(12)}
   html <- remDr$getPageSource()[[1]]
   html <- read_html(html)
   name <- html %>% 
@@ -123,6 +124,7 @@ for(i in 1:nrow(company)){
   company_db <- rbind(company_db, df)
 }
 
+#write.csv(company_db, "data_clean/company_db_3.csv", row.names = F)
 #write.csv(company_db, "data_clean/company_db_2.csv", row.names = F)
 #company_db <- read.csv("lgu/company_db.csv")
 not_gathered <- filter(company_db, is.na(name)) %>% select(id)
