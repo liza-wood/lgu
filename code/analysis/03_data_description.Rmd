@@ -434,7 +434,6 @@ ggplot(df, aes(x = crop_cat)) +
   theme(axis.text.x= element_text(angle = 45, hjust = 1))
 ```
 
-~
 ## What are the innovative qualities for food crops?  
 
 
