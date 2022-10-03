@@ -30,7 +30,22 @@ df <- filter(df, !(str_detect(df$Title, "[Mm]ethod|[Aa]pparatus|[Pp]rocess")) &
                !(str_detect(df$Claims, "1\\. A method")))
 
 ### TRY TO ID CROPS 
-write.csv(df, "data_clean/uspto_lgus.csv", row.names = F)
+#write.csv(df, "data_clean/uspto_lgus.csv", row.names = F)
+df <- read.csv("data_clean/uspto_lgus.csv")
+
+crops <- read.csv("~/Box/lgu/data_indices/crop.csv")
+crops$crop_name_common_lower <- tolower(crops$crop_name_common)
+
+for(i in 1:nrow(df)){
+  for(j in 1:nrow(crops)){
+    if(str_detect(tolower(df$Common.Name[i]), tolower(crops$crop_name_common[j])) == T &
+       !is.na(str_detect(tolower(df$Common.Name[i]), tolower(crops$crop_name_common[j])))){
+      df$crop_name_common[i] <- crops$crop_name_common[j]
+    } else {next}
+  }
+}
+
+
 
 # Plant patents definitely stay, but how to get utility patents
 pps <- filter(df, str_detect(df$WKU, "^PP"))

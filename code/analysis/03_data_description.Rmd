@@ -12,7 +12,7 @@ pto <- read.csv("~/Box/lgu/data_clean/uspto_lgus.csv")
 #ip <- join pvp and pto, filter to 1980-2020
 ```
 
-This page summarizes plant breeding activities at US Land Grant Universities (LGUs) and the subsequent trends in technology transfer between. Data for these summaries are combined across X sources:  
+This page summarizes plant breeding activities at US Land Grant Universities (LGUs) and the subsequent trends in technology transfer between LGUs and companies. Data for these summaries are combined across X sources:  
 1. PVP database
 1. USPTO database  
 1. Licensing metadata from 25 LGUs, collected via FOIA requests
@@ -33,9 +33,13 @@ ggplot(ip) +
 For each of these protections, the protected crop was identified and categorized into one of 10 (?) groupings designated by the [FAO Agricultural Census](https://www.fao.org/3/a0135e/A0135E10.htm#app3), in line with Pardey et a. 20XX. The following crops have been   
 
 ```{r}
-## A plot over time, colored by crop type
+## A plot of crop types
 ```
 
+The q
+```{r}
+## 
+```
 
 ## What does licensing look like?  
 

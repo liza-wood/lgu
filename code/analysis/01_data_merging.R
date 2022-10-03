@@ -25,10 +25,11 @@ agreement <- read.csv("data_indices/agreements.csv")
 # --- Checking the data: Do we have our "official names" right? ----
 ## Crops ----
 # Crops indexed into categories based on FAO https://www.fao.org/3/a0135e/A0135E10.htm#app3
-length(unique(crop$crop_name_common)) # we have 168 crops on our master list
+length(unique(crop$crop_name_common)) # we have 260 crops on our master list (this includes the names in pvps that are not in the licenses)
 length(unique(license$crop_name_common)) # have 165 in the licenses
 # Here are the differences: the crops in common that are not in the master list
-unique(license$crop_name_common[!(license$crop_name_common %in% unique(crop$crop_name_common))])
+unique(license$crop_name_common[!(license$crop_name_common %in% unique(crop$crop_name_common))]) # zero means we are okay
+# These are those that are in PVP but not in the licenses
 unique(crop$crop_name_common[!(crop$crop_name_common %in% unique(license$crop_name_common))])
 
 license <- license %>% 
@@ -94,6 +95,7 @@ unique(sort(duplicates))
 rpl_na <- function(x){ifelse(x == "", NA, x)}
 company <- data.frame(sapply(company, rpl_na))
 
+# This function goes through and selects the company profile that 1. has hte most infor about it, 2. has total employee number, 3. has earlier est. year
 dup_df <- data.frame()
 for(i in unique(sort(duplicates))){
   dups <- filter(company, official_name == i)
@@ -115,7 +117,8 @@ for(i in unique(sort(duplicates))){
 }
 
 # Need to manually choose for Beck's
-dup_df <- filter(dup_df, !(official_name == "Beck's Superior Hybrids" & is.na(incorp_location)))
+dup_df <- filter(dup_df, !(official_name == "Beck's Superior Hybrids" & 
+                             is.na(incorp_location)))
 
 company <- company %>% filter(!(official_name %in% duplicates)) %>% 
   rbind(dup_df)

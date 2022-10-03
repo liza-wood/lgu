@@ -4,7 +4,8 @@ library(dplyr)
 # Set working director to Box
 setwd("~/Box/lgu")
 
-funding <- read.csv("data_raw/federal_funding//breeding_awards_combined.csv")
+# CLEAN PUBLIC FUNDING ----
+funding <- read.csv("data_raw/federal_funding/breeding_awards_combined.csv")
 funding_by_yr_state <- funding %>% 
   group_by(state, year) %>% 
   summarize(funding_amt = sum(Award.Dollars)) %>% 
@@ -24,7 +25,7 @@ fund_df <- funding %>%
   unique() %>% 
   rename(uni_state = state)
 
-
+# CLEAN LICENSING ----
 df <- read.csv("data_clean/merged_df.csv") %>% 
   mutate(license_yr = year(effective_date)) %>% 
   filter(license_yr > 1999 & license_yr < 2021) %>% 
@@ -69,8 +70,6 @@ df$company_size <- factor(df$company_size, levels = c("Large ($10M+)",
                                                       "Very small (<$200K)",
                                                       "Non-company", 
                                                       "Unknown"))
-
-table(is.na(df$crop_cat))
 
 saveRDS(df, "data_clean/df_final.RDS")
 
