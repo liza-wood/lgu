@@ -19,7 +19,6 @@ for(i in 1:nrow(states)){
   df <- rbind(df, sheet)
 }
 
-# Fix this
 rpl_na <- function(x) {ifelse(x == "NANA" | x == "NA" | x == "NULL", NA, x)}
 df[,c(3,4,12:13)] <- data.frame(sapply(df[,c(3,4,12:13)], as.character))
 df[3936, "variety_name"]

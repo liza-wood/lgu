@@ -1,84 +1,95 @@
 ---
-title: "Plant variety licensing descriptions"
+title: "Plant material innovation at Land Grant Universities"
+subtitle: "Intellectural property protections and matieral licensing, 1980-2020"
 author: "Liza Wood"
-date: "2022-09-26"
+date: "`r Sys.Date()`"
 output: html_document
 ---
 ```{r, warning= F, message=F}
 library(tidyverse)
 df <- readRDS("~/Box/lgu/data_clean/df_final.RDS")
-pvp <- read.csv("~/Box/lgu/data_clean/pvpo_lgus.csv")
+pvp <- read.csv("~/Box/lgu/data_clean/pvpo_lgu.csv")
 pto <- read.csv("~/Box/lgu/data_clean/uspto_lgus.csv")
+ip <- pto
 #ip <- join pvp and pto, filter to 1980-2020
 ```
 
-This page summarizes plant breeding activities at US Land Grant Universities (LGUs) and the subsequent trends in technology transfer between. Data for these summaries are combined across X sources:  
+```{r, echo = F}
+colors9 <- RColorBrewer::brewer.pal(name = "Spectral", n = 9)
+```
+
+This page summarizes plant breeding activities at US Land Grant Universities (LGUs) and the subsequent trends in technology transfer between universities and companies. Data for these summaries are combined across four sources:  
 1. PVP database
 1. USPTO database  
-1. Licensing metadata from 25 LGUs, collected via FOIA requests
+1. Licensing metadata from 25 LGUs, collected via FOIA requests  
+1. Company data collected from the D&B Hoovers database  
 
 ### How have LGUs been protecting their plant material?   
 
-The PVP and USPTO databases were scraped and automated text matching was used to identify applications by Land Grant Universities. For PVPs, this meant looking for applications with Universities as Applicants, and for USPTO, this meant looking for LGUs as Assignees (and others?). Between 1980-2020 `r nrow(ip)` applications have been submitted by LGUs, X as PVP and X as USPTO. There have a steady increase in both IP types:
+The PVP and USPTO databases were scraped and automated text matching was used to identify applications by the 50 1862 LGUs. For PVPs, this meant looking for applications with Universities as Applicants, and for USPTO, this meant looking for LGUs as Assignees, as well as ??.  
+
+Between 1980-2020 `r nrow(ip)` applications have been submitted by LGUs, `r nrow(pvp)` as PVP and `r nrow(pto)` as USPTO (`r nrow(pto[str_detect(pto$WKU, '^PP'),])` as plant patents and `r nrow(pto[!(str_detect(pto$WKU, '^PP')),])` as utility patents). There have a steady increase in both IP types over time:
 
 ```{r}
-# plot over time, with the two types of protections being charted
-ggplot(ip) +
-  geom_bar(aes(x = year), stat = "count")
+ip %>% 
+  group_by(issue_year) %>% 
+  count() %>% 
+  ggplot(aes(x = issue_year, y = n,)) +
+  geom_bar(stat = "identity") +
+  stat_identity(geom = "text", colour = "white", size = 2,
+                aes(label = n),
+                position=position_stack(vjust=0.5)) +
+  labs(x = "Year", y = "Count", title = "Plant protection over time") +
+  theme_linedraw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 10))
 ```
-
 
 ### What plant material have LGUs been developing? 
 
-For each of these protections, the protected crop was identified and categorized into one of 10 (?) groupings designated by the [FAO Agricultural Census](https://www.fao.org/3/a0135e/A0135E10.htm#app3), in line with Pardey et a. 20XX. The following crops have been   
+For each of these protections, the protected crop was identified and categorized into one of 10 (?) groupings designated by the [FAO Agricultural Census](https://www.fao.org/3/a0135e/A0135E10.htm#app3), in line with Pardey et a. 20XX. The following crops have been identified:  
 
 ```{r}
 ## A plot over time, colored by crop type
+ip %>% 
+  group_by(crop_cat) %>% 
+  count() %>% 
+  arrange(desc(n)) %>% 
+  mutate(crop_cat = factor(crop_cat, levels = .$crop_cat)) %>% 
+  ggplot(aes(x = crop_cat, y = n)) +
+  geom_bar(stat = "identity") +
+  stat_identity(geom = "text", colour = "white", size = 2,
+                aes(label = n),
+                position=position_stack(vjust=0.5)) +
+  labs(x = "", y = "Count", title = "Plant protection by crop category") +
+  theme_linedraw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 10),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### What qualities do these plants have?  
+
+Of the `r nrow(ip)` plant varieties that have been protected by PVPs or patents, we qualitatively coded a random subset of the plant descriptions (10%, `r nrow(ip)*.1`). Coding resulted in the identification of **X** themes: **[TO FILL IN]**. We used this 10% to train a neural network to classify plant description text into these categories, which is **X% effective**. The following categories are most prominent:
+
+```{r}
+# Summary forthcoming: Frequency of crop qualities
+```
+
+These categories vary across crop in the following ways:
+
+```{r}
+# Summary forthcoming: Crop quality x crop category
 ```
 
 
-## What does licensing look like?  
+## Technology transfer: What happens to these varieties?   
 
-Preliminary look at these data span the following features:  
+Beyond protecting material, universities **license** the plant material they develop -- some of it protected, others not -- to third parties to commercialize and/or continue to innovation. I collected records of licensing data between 2000-2020 for 25 LGUs.   
+
+Preliminary look at these data include the following features:  
 * `r nrow(df)` licensing agreements across `r length(unique(df$uni_state))` Land Grant Universities between 2000-2020  
 * Agreements are with `r length(unique(df$licensee[df$licensee_type == "company"]))` companies and `r length(unique(df$licensee[df$licensee_type == "other"]))` other entities (organizations, universities, individuals, etc.)  
-* `r length(unique(df$variety_name))` unique plant varieties and/or breeding lines are licensed  
+* `r length(unique(df$variety_name))` unique plant varieties and/or breeding lines are licensed, which accounts for about `r round(100*(length(unique(df$variety_name))/nrow(df[ip$issue_year %in% 1995:2020,])), 1)`% of the plant protections granted during roughly that same time (1995-2020).  
 * These plant varieties span `r length(unique(df$crop_cat))` different crop categories, including: `r unique(df$crop_cat)`
-
-```{r, echo = F, eval = F}
-unique(df$license_yr)
-df$yr_bi <- ifelse(df$license_yr %in% 2001:2010, "2001-2010", "2011-2020")
-table(df$agreement_type)
-618/(618+709) # Exclusive
-table(df$agreement_type, df$yr_bi)
-279/(279+234) # exclusive 2001-2010
-339/(339+475) # exclusive 2011-2020
-table(df$spatial_match)
-prop.table(table(df$spatial_match))
-381/(381+1434) # outside
-prop.table(table(df$spatial_match, df$yr_bi), margin = 2)
-158/(158+451) # outside 2001-2010
-223/(223+983) # outside 2011-2020
-
-
-df %>% 
-  group_by(yr_bi) %>% 
-  count()
-
-table(df$company_size)
-prop.table(table(df$company_size[df$company_size != "Unknown" & df$company_size != "Non-company"]))
-prop.table(table(df$company_size, df$spatial_match), margin = 2)
-
-df %>% 
-  select(licensee, company_size) %>% 
-  unique() %>% 
-  count(company_size) %>% 
-  mutate(sum = sum(n)) %>% 
-  mutate(percent = 100*(n/sum)) %>% 
-  filter(!is.na(company_size)) %>% 
-  ggplot(aes(x = company_size, y = n)) +
-  geom_bar(stat = "identity")
-```
 
 ## Summaries over time   
 
@@ -96,51 +107,70 @@ df %>%
   theme(plot.title = element_text(hjust = 0.5, size = 10))
 ```
 
-```{r, out.width = "80%", fig.align= "center"}
-yr_count <- df %>% 
-  group_by(license_yr) %>% 
-  count() %>% 
-  rename(yr_n = n)
-colors9 <- RColorBrewer::brewer.pal(name = "Spectral", n = 9)
+```{r, echo = F}
+counts <- df %>% group_by(uni_state) %>% count()
+yrly_counts <- df %>% group_by(uni_state, license_yr) %>% count()
+```
 
-crop_plot <- df %>% 
-  group_by(license_yr, crop_cat) %>% 
-  count() %>% 
-  left_join(yr_count) %>% 
-  mutate(prop = round(100*n/sum(yr_n), 0)) %>% 
-  ungroup() %>% 
-  #mutate(prop = case_when(
-  #  prop == 29 & license_yr == 2009 ~ 28,
-  #  prop == 39 & license_yr == 2014 ~ 38,
-  #  prop == 55 & license_yr == 2015 ~ 56,
-  #  T ~ prop)) %>% 
-  ggplot(aes(x = license_yr, y = prop, fill = crop_cat)) +
-  geom_bar(stat = "identity") +
-  #stat_identity(geom = "text", colour = "white", size = 3.5,
-  #           aes(label = prop),
-  #           position=position_stack(vjust=0.5)) +
-  labs(x = "Year", y = "Percent", fill = "Crop",
-       title = "Percent of licenses by crop category over time") +
-  scale_fill_brewer(palette = "Spectral")+
+This varies by state considerably. The number of licenses over the twenty year periods ranges from only `r min(counts$n)` in `r counts$uni_state[counts$n == min(counts$n)]` to `r max(counts$n)` in `r counts$uni_state[counts$n == max(counts$n)]`, with an annual average of `r round(mean(yrly_counts$n))` licenses. Below are the number of licenses for each state over time, with the y axis cut at 100.
+
+```{r, out.width = "80%", fig.align= "center"}
+ggplot(df, aes(x = license_yr)) +
+  geom_bar() +
+  #geom_text(tab, aes(x = x, label = n)) + 
+  labs(x = "Year", y = "Count", title = "Licenses over time by state") +
   theme_linedraw() +
-  theme(plot.title = element_text(hjust = 0.1, size = 10)) ; crop_plot
+  facet_wrap(~uni_state, nrow = 5) +
+  coord_cartesian(ylim = c(0,100)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+```{r, out.width = "80%", fig.align= "center"}
+df %>% 
+  group_by(crop_cat) %>% 
+  count() %>% 
+  arrange(desc(n)) %>% 
+  mutate(crop_cat = factor(crop_cat, levels = .$crop_cat)) %>% 
+  ggplot(aes(x = crop_cat, y = n)) +
+  geom_bar(stat = "identity") +
+  stat_identity(geom = "text", colour = "white", size = 2,
+                aes(label = n),
+                position=position_stack(vjust=0.5)) +
+  labs(x = "", y = "Count", title = "Plant licensing by crop category") +
+  theme_linedraw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 10),
+        axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 ```{r, out.width = "80%", fig.align= "center"}
-yr_count2 <- df %>% 
-  filter(!(company_size %in% c("Unknown", "Non-company"))) %>% 
-  filter(!is.na(company_size)) %>% 
-  group_by(license_yr) %>% 
+df %>% 
+  group_by(license_yr, crop_cat) %>% 
   count() %>% 
-  rename(yr_n = n)
+  ungroup() %>% 
+  group_by(license_yr) %>% 
+  mutate(yr_n = sum(n)) %>% 
+  mutate(prop = round(100*n/yr_n, 0)) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = license_yr, y = n, color = crop_cat)) +
+  geom_line() +
+  labs(x = "Year", y = "Count", color = "Crop",
+       title = "Number of licenses by crop category over time") +
+  scale_fill_brewer(palette = "Spectral") +
+  theme_linedraw() +
+  theme(plot.title = element_text(hjust = 0.1, size = 10)) 
+```
 
-company_plot <- df %>% 
+```{r, out.width = "80%", fig.align= "center", echo = F, eval = F}
+df %>% 
   filter(!(company_size %in% c("Unknown", "Non-company"))) %>% 
   filter(!is.na(company_size)) %>% 
   group_by(license_yr, company_size) %>% 
   count() %>% 
-  left_join(yr_count2) %>% 
-  mutate(prop = round(100*n/sum(yr_n), 0)) %>% 
+  ungroup() %>% 
+  group_by(license_yr) %>% 
+  mutate(yr_n = sum(n)) %>% 
+  mutate(prop = round(100*n/yr_n, 0)) %>% 
   ungroup() %>% 
   #mutate(prop = case_when(
   #  prop == 48 & license_yr %in% c(2000, 2004) ~ 49,
@@ -160,20 +190,22 @@ company_plot <- df %>%
        title = "Percent of licenses by company size over time") +
   scale_fill_manual(values = colors9[c(1,3,7,9)])+
   theme_linedraw() +
-  theme(plot.title = element_text(hjust = 0.1, size = 10)) ; company_plot
+  theme(plot.title = element_text(hjust = 0.1, size = 10))
 ```
 
 ```{r, out.width = "80%", fig.align= "center"}
-licensee_plot <- df %>% 
+df %>% 
   mutate(spatial_match = case_when(
     spatial_match == "Outside region" ~ "Extra-regional",
     spatial_match == "Within region" ~ "Regional",
-    T ~ spatial_match
-  )) %>% 
+    T ~ spatial_match)) %>% 
   group_by(license_yr, spatial_match) %>% 
   count() %>% 
-  left_join(yr_count) %>% 
-  mutate(prop = round(100*n/sum(yr_n), 0)) %>% 
+  ungroup() %>% 
+  group_by(license_yr) %>% 
+  mutate(yr_n = sum(n)) %>% 
+  mutate(prop = round(100*n/yr_n, 0)) %>% 
+  ungroup() %>% 
   ggplot(aes(x = license_yr, y = prop, fill = spatial_match)) +
   geom_bar(stat = "identity") +
   stat_identity(geom = "text", colour = "white", size = 3.5,
@@ -183,22 +215,20 @@ licensee_plot <- df %>%
        title = "Percent of licenses by licensee over time") +
   scale_fill_manual(values = colors9[c(2,3,8)])+
   theme_linedraw() +
-  theme(plot.title = element_text(hjust = 0.5, size = 10)) ; licensee_plot
+  theme(plot.title = element_text(hjust = 0.5, size = 10))
 
 ```
 
 ```{r, out.width = "80%", fig.align= "center"}
-yr_count3 <- df %>% 
-  filter(!is.na(agreement_type)) %>% 
-  group_by(license_yr) %>% 
-  count() %>% 
-  rename(yr_n = n)
-agreement_plot <- df %>% 
+df %>% 
   filter(!is.na(agreement_type)) %>% 
   group_by(license_yr, agreement_type) %>% 
   count() %>% 
-  left_join(yr_count3) %>% 
-  mutate(prop = round(100*n/sum(yr_n), 0)) %>% 
+  ungroup() %>% 
+  group_by(license_yr) %>% 
+  mutate(yr_n = sum(n)) %>% 
+  mutate(prop = round(100*n/yr_n, 0)) %>% 
+  ungroup() %>% 
   ggplot(aes(x = license_yr, y = prop, fill = agreement_type)) +
   geom_bar(stat = "identity") +
   #stat_identity(geom = "text", colour = "white", size = 3.5,
@@ -208,17 +238,24 @@ agreement_plot <- df %>%
        title = "Percent of license by agreement type over time") +
   scale_fill_manual(values = colors9[c(1,3,8)])+
   theme_linedraw() +
-  theme(plot.title = element_text(hjust = 0.1, size = 10)) ; agreement_plot
+  theme(plot.title = element_text(hjust = 0.1, size = 10)) 
 ```
 
-```{r, out.width = "80%", fig.align= "center"}
-ggplot(df, aes(x = license_yr)) +
-  geom_bar() +
-  #geom_text(tab, aes(x = x, label = n)) + 
-  labs(x = "Year", y = "Count", title = "Licenses over time by state") +
-  theme_linedraw() +
-  facet_wrap(~uni_state, nrow = 5) +
-  coord_cartesian(ylim = c(0,150))
+
+```{r, echo = F, eval = F}
+table(df$company_size)
+prop.table(table(df$company_size[df$company_size != "Unknown" & df$company_size != "Non-company"]))
+prop.table(table(df$company_size, df$spatial_match), margin = 2)
+
+df %>% 
+  select(licensee, company_size) %>% 
+  unique() %>% 
+  count(company_size) %>% 
+  mutate(sum = sum(n)) %>% 
+  mutate(percent = 100*(n/sum)) %>% 
+  filter(!is.na(company_size)) %>% 
+  ggplot(aes(x = company_size, y = n)) +
+  geom_bar(stat = "identity")
 ```
 
 ```{r, echo = F, eval = F}
@@ -403,25 +440,6 @@ df %>%
   theme_linedraw()
 ```
 
-## Summaries by crop   
-
-```{r, out.width = "80%", fig.align= "center"}
-crop_count <- df %>% 
-  group_by(crop_cat) %>% 
-  count() %>% 
-  arrange(desc(n))
-df$crop_cat <- factor(df$crop_cat, levels = crop_count$crop_cat)
-
-ggplot(df, aes(x = crop_cat)) +
-  geom_bar() +
-  stat_count(geom = "text", colour = "white", size = 3.5,
-             aes(label = ..count..),
-             position=position_stack(vjust=0.5)) +
-  labs(x = "Crop", y = "Count", 
-       title = "Licenses by crop") +
-  theme_linedraw() +
-  theme(axis.text.x= element_text(angle = 45, hjust = 1)) 
-```
 
 ```{r, eval = F, echo = F}
 crop_by_state <- data.frame(table(df$crop_cat, df$state))
