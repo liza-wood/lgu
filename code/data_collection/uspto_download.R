@@ -11,8 +11,8 @@ getOption('timeout')
 options(timeout=1200)
 
 # Download all of the patents for 1976 to 2020 -- did this in chunks
-for(i in 2019){ 
-  for(j in c(22:52)){ 
+for(i in 2020){ 
+  for(j in c(5:52)){ 
     get_bulk_patent_data(
       year = i,         
       week = j,                   

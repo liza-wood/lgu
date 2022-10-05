@@ -55,9 +55,36 @@ for(i in 1:nrow(uni)){
   }
 }
 
-uni2 <- left_join(uni, crops) %>% unique()
-uni2$dup <- duplicated(uni2$Application..)
+uni <- uni %>% 
+  left_join(crops) %>% 
+  unique() %>% 
+  mutate(crop_cat = case_when(
+    fao_class1 == "sugar_crops" ~ "Sugar, spice & medicinal",
+    fao_class1 == "spice_crops" ~ "Sugar, spice & medicinal",
+    fao_class1 == "medicinal" ~ "Sugar, spice & medicinal",
+    fao_class1 == "cereals" ~ "Cereals",
+    fao_class1 == "fruits_nuts" ~ "Fruits & nuts",
+    fao_class1 == "grasses_fodder" ~ "Grasses & fodder",
+    fao_class1 == "leguminous" ~ "Leguminous",
+    fao_class1 == "non_food" ~ "Non-food (cotton & tabacco)",
+    fao_class1 == "oilseeds" ~ "Oilseeds",
+    fao_class1 == "root_tuber" ~ "Roots & tubers",
+    fao_class1 == "veg_melon" ~ "Vegetables & melons",
+    ornamental == T ~ "Ornamental",
+    T ~ fao_class1
+  ))
+
+states <- read.csv("~/Box/lgu/data_indices/universities.csv") %>% 
+  mutate(university = tolower(university_name))
+
+uni <- left_join(uni, states) %>% 
+  mutate(uni_state = case_when(
+    str_detect(Applicant, "North Carolina Agricultural Research Service") ~ "North Carolina",
+    T ~ uni_state
+  ))
 
 
+uni$issue_year <- year(mdy(uni$Issued.Date))
+colnames(uni)[1] <- "id"
 write.csv(total, "data_clean/pvpo_total.csv", row.names = F)
 write.csv(uni, "data_clean/pvpo_lgu.csv", row.names = F)

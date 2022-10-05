@@ -21,7 +21,7 @@ for(i in 1:nrow(states)){
 
 # Fix this
 rpl_na <- function(x) {ifelse(x == "NANA" | x == "NA" | x == "NULL", NA, x)}
-df[,c(1:20,22:24,26:29)] <- data.frame(sapply(df[,c(1:20,22:24,26:29)], as.character))
-df[,c(1:20,22:24,26:29)] <- data.frame(sapply(df[,c(1:20,22:24,26:29)], rpl_na))
+df[,c(1:20,22:24,26:30)] <- data.frame(sapply(df[,c(1:20,22:24,26:30)], as.character))
+df[,c(1:20,22:24,26:30)] <- data.frame(sapply(df[,c(1:20,22:24,26:30)], rpl_na))
 df$pvp_id <- as.character(df$pvp_id)
 write.csv(df, "data_clean/inventor_invention.csv", row.names = F)

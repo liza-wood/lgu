@@ -8,22 +8,23 @@ output: html_document
 ```{r, warning= F, message=F}
 library(tidyverse)
 df <- readRDS("~/Box/lgu/data_clean/df_final.RDS")
-pvp <- read.csv("~/Box/lgu/data_clean/pvpo_lgu.csv")
+pvp <- read.csv("~/Box/lgu/data_clean/pvpo_lgu.csv") %>% mutate(id = as.character(id))
 pto <- read.csv("~/Box/lgu/data_clean/uspto_lgus.csv")
-ip <- pto
-#ip <- join pvp and pto, filter to 1980-2020
+ip <- full_join(pvp, pto) %>% 
+  filter(issue_year >= 1980 & issue_year <= 2020)
 ```
 
-This page summarizes plant breeding activities at US Land Grant Universities (LGUs) and the subsequent trends in technology transfer between LGUs and companies. Data for these summaries are combined across X sources:  
 ```{r, echo = F}
 colors9 <- RColorBrewer::brewer.pal(name = "Spectral", n = 9)
 ```
 
+This page summarizes plant breeding activities at US Land Grant Universities (LGUs) and the subsequent trends in technology transfer between LGUs and companies. Data for these summaries are combined across X sources: 
+
 This page summarizes plant breeding activities at US Land Grant Universities (LGUs) and the subsequent trends in technology transfer between universities and companies. Data for these summaries are combined across four sources:  
 1. PVP database
-1. USPTO database  
-1. Licensing metadata from 25 LGUs, collected via FOIA requests  
-1. Company data collected from the D&B Hoovers database  
+2. USPTO database  
+3. Licensing metadata from 25 LGUs, collected via FOIA requests  
+4. Company data collected from the D&B Hoovers database  
 
 ### How have LGUs been protecting their plant material?   
 
@@ -31,7 +32,7 @@ The PVP and USPTO databases were scraped and automated text matching was used to
 
 Between 1980-2020 `r nrow(ip)` applications have been submitted by LGUs, `r nrow(pvp)` as PVP and `r nrow(pto)` as USPTO (`r nrow(pto[str_detect(pto$WKU, '^PP'),])` as plant patents and `r nrow(pto[!(str_detect(pto$WKU, '^PP')),])` as utility patents). There have a steady increase in both IP types over time:
 
-```{r}
+```{r, out.width = "80%", fig.align= "center", echo = F}
 ip %>% 
   group_by(issue_year) %>% 
   count() %>% 
@@ -49,12 +50,7 @@ ip %>%
 
 For each of these protections, the protected crop was identified and categorized into one of 10 (?) groupings designated by the [FAO Agricultural Census](https://www.fao.org/3/a0135e/A0135E10.htm#app3), in line with Pardey et a. 20XX. The following crops have been identified:  
 
-```{r}
-## A plot of crop types
-```
-
-The q
-```{r}
+```{r, out.width = "80%", fig.align= "center", echo = F}
 ## A plot over time, colored by crop type
 ip %>% 
   group_by(crop_cat) %>% 
@@ -70,6 +66,21 @@ ip %>%
   theme_linedraw() +
   theme(plot.title = element_text(hjust = 0.5, size = 10),
         axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+States develop crop material at different rates.
+
+```{r, out.width = "100%", fig.align= "center", echo = F}
+ip %>% 
+  #filter(!is.na(uni_state)) %>% 
+  ggplot(aes(x = issue_year)) +
+  geom_bar() +
+  #geom_text(tab, aes(x = x, label = n)) + 
+  labs(x = "Year", y = "Count", title = "Plant protections over time by state") +
+  theme_linedraw() +
+  facet_wrap(~uni_state, nrow = 5) +
+  coord_cartesian(ylim = c(0,25)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 ### What qualities do these plants have?  
@@ -92,6 +103,7 @@ These categories vary across crop in the following ways:
 Beyond protecting material, universities **license** the plant material they develop -- some of it protected, others not -- to third parties to commercialize and/or continue to innovation. I collected records of licensing data between 2000-2020 for 25 LGUs.   
 
 Preliminary look at these data include the following features:  
+
 * `r nrow(df)` licensing agreements across `r length(unique(df$uni_state))` Land Grant Universities between 2000-2020  
 * Agreements are with `r length(unique(df$licensee[df$licensee_type == "company"]))` companies and `r length(unique(df$licensee[df$licensee_type == "other"]))` other entities (organizations, universities, individuals, etc.)  
 * `r length(unique(df$variety_name))` unique plant varieties and/or breeding lines are licensed, which accounts for about `r round(100*(length(unique(df$variety_name))/nrow(df[ip$issue_year %in% 1995:2020,])), 1)`% of the plant protections granted during roughly that same time (1995-2020).  
@@ -99,7 +111,7 @@ Preliminary look at these data include the following features:
 
 ## Summaries over time   
 
-```{r, out.width = "80%", fig.align= "center"}
+```{r, out.width = "80%", fig.align= "center", echo = F}
 df %>% 
   group_by(license_yr) %>% 
   count() %>% 

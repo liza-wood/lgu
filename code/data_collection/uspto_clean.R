@@ -11,28 +11,12 @@ df19 <- read.csv("data_raw/other_ip/uspto_uni_plant_19.csv")
 df <- rbind(df76, df96, df01, df06, df11, df16, df19)
 uni_names <- read.csv("data_indices/universities2.csv")
 
-# Choose only LGUs
-lgu_pattern <- paste(uni_names$uni_name, collapse = "|")
-mistakes <- paste(c("University of Minnestoa", "University of Akransas", 
-                    "University of Akranas", "Texas A \\& M University",
-                    "University of Tennesse", "University of Ga", 
-                    "University of Georgiea", "North Carollna State University",
-                    "Rutger"), collapse = "|")
-lgu_pattern <- paste(lgu_pattern, mistakes, sep = "|")
-lgu_pattern <- str_replace_all(lgu_pattern, "\\bof\\b", "[Oo]f")
-lgu_pattern <- tolower(lgu_pattern)
-
-for(i in 1:nrow(df)){
-  df$university[i] <- str_extract(tolower(df$Assignee[i]), lgu_pattern)
-}
-
 #df <- filter(df, !is.na(university))
 df <- filter(df, !(str_detect(df$Title, "[Mm]ethod|[Aa]pparatus|[Pp]rocess")) &
                !(str_detect(df$Claims, "1\\. A method")))
 
 ### TRY TO ID CROPS 
-#write.csv(df, "data_clean/uspto_lgus.csv", row.names = F)
-df <- read.csv("data_clean/uspto_lgus.csv")
+#df <- read.csv("data_clean/uspto_lgus.csv") 
 df$issue_year <- year(lubridate::ymd(df$Issue_Date))
 crops <- read.csv("~/Box/lgu/data_indices/crop.csv")
 crops$crop_name_common <- str_remove_all(crops$crop_name_common,"\\.")
@@ -96,5 +80,54 @@ df_plants <- df_plants %>%
     ornamental == T ~ "Ornamental",
     T ~ fao_class1
   ))
+
+# Fix something with Rugers and Texas A&M -- want to ID the school
+# Choose only LGUs
+lgu_pattern <- paste(uni_names$uni_name, collapse = "|")
+mistakes <- paste(c("University of Minnestoa", "University of Akransas", 
+                    "University of Arkanas",
+                    "University of Akranas", "Texas A \\& M University",
+                    "University of Tennesse", "University of Ga", 
+                    "University of Georgiea", "North Carollna State University",
+                    "North Carolina State Univ\\. at Raleigh",
+                    "Regents of the University of Minn\\.",
+                    "Rutger", "Regents U\\.C\\."), collapse = "|")
+lgu_pattern <- paste(lgu_pattern, mistakes, sep = "|")
+lgu_pattern <- str_replace_all(lgu_pattern, "\\bof\\b", "[Oo]f")
+lgu_pattern <- tolower(lgu_pattern)
+
+for(i in 1:nrow(df_plants)){
+  df_plants$university[i] <- str_extract(tolower(trimws(df_plants$Assignee[i])), lgu_pattern)
+}
+
+unique(df_plants$Assignee[is.na(df_plants$university)])
+
+df_plants <- df_plants %>% 
+  mutate(university = case_when(
+    university %in% c("university of minnestoa",
+                      "regents of the university of minn.") ~ "university of minnesota",
+    university %in% c("university of arkanas",
+                      "university of akransas", 
+                      "university of akranas") ~ "university of arkansas",
+    university == "texas a & m university" ~ "texas a&m",
+    university == "university of tennesse"~ "university of tennessee",
+    university %in% c("university of ga",
+                      "university of georgiea") ~ "university of georgia",
+    university %in% c("north carollna state university",
+                      "north carolina state univ. at raleigh") ~ "north carolina state university",
+    university == "rutger" ~ "rutgers university",
+    university == "regents u.c." ~ "university of california",
+    T ~ university
+  ))
+
+table(df_plants$university)
+
+states <- uni_names %>% 
+  mutate(university = tolower(uni_name))
+
+df_plants <- left_join(df_plants, states) %>% 
+  filter(!is.na(uni_state))
+
+colnames(df_plants)[1] <- "id"
 
 write.csv(df_plants, "data_clean/uspto_lgus.csv", row.names = F)
