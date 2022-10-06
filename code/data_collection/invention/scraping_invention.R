@@ -4,6 +4,8 @@ library(httr)
 library(pdftools)
 library(tesseract)
 library(patentsview)
+library(tidyverse)
+setwd("~/Box/lgu")
 df <- read.csv("data_clean/inventor_invention.csv")
 table(df$ip_type)
 
@@ -82,6 +84,11 @@ pp_db <- full_join(pp_db, no_abs_df, by = "id") %>%
 set.seed(300)
 pp_random_selection <- sample.int(nrow(pp_db), round(.1*nrow(pp_db)), replace = F)
 pp_random_selection <- pp_db[pp_random_selection,]
+colnames(pp_random_selection)
+pp_random_selection <- pp_random_selection %>% 
+  select(id, id_edited, uni_state, issue_year, Title, crop_cat, abstract)
+write.csv(pp_random_selection, "data_clean/pp_random_selection.csv", 
+          row.names = F, fileEncoding = "UTF-8")
 
 # This shit doesn't work anymore
 #testurl <- pp$invention_url[2]
@@ -105,12 +112,33 @@ pvp_db <- read.csv("~/Box/lgu/data_clean/pvpo_lgu.csv") %>%
 # These are the licenses not in the database -- WHY??
 mismatch1a <- anti_join(pvp_license, pvp_db, by = "id")
 
+set.seed(300)
 pvp_random_selection <- sample.int(nrow(pvp_db), round(.1*nrow(pvp_db)), replace = F)
-pvp_random_selection <- pvp_db[random_selection,]
+pvp_random_selection <- pvp_db[pvp_random_selection,]
 
-testurl <- pvp_random_selection$invention_url[55]
-pdf <- tesseract::ocr(testurl)
+pvp_random_selection$invention_url <- paste0("https://apps.ams.usda.gov/CMS//AdobeImages/",pvp_random_selection$id , ".pdf")
 
-pdf[5]
+setwd("data_raw/ocr_pdfs")
+pvp_random_selection$text <- ""
+for(i in 1:nrow(pvp_random_selection)){
+  pdf <- tryCatch(tesseract::ocr(pvp_random_selection$invention_url[i]),
+                  error = function(e) NULL)
+  if(!is.null(pdf)){
+    exb <- which(str_detect(pdf, "Exhibit\\s?\\d?\\d?\\s?[Bb]"))
+    if(length(exb) > 1){ # it often appears on the title page
+      exb <- exb[2]
+    }
+    #exc <- which(str_detect(pdf, "Exhibit\\s?\\d?\\d?\\s?[Cc]"))
+    #if(length(exc) > 1){
+    #  exc <- exc[2]
+    #}
+    text <- paste(pdf[exb:exb+2], collapse = " ") #%>% 
+      #str_extract(., "(?<=Exhibit\\s?\\d?\\d?\\s?[Bb])(.|\\n)*(?=Exhibit\\s?\\d?\\d?\\s?[Cc])")  # text that follows exhibit B
+    pvp_random_selection$text[i] <- text
+  } else {next}
+}
+setwd("~/Box/lgu")
+
+pvp_random_selection$text[1]
 
 ## -- GRIN ----

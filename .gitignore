@@ -1,7 +1,8 @@
 # Scrape
-company_scraping_h.R
-
-company_scraping.R
+code/data_collection/company/
+cleaning_company.R
+scraping_company_public.R
+scraping_company_h.R
 
 
 # History files

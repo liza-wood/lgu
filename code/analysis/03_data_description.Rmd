@@ -1,12 +1,14 @@
 ---
 title: "Plant material innovation at Land Grant Universities"
 subtitle: "Intellectural property protections and matieral licensing, 1980-2020"
-author: "Liza Wood"
+author: "Liza Wood, Adam Vera, Victoria Fletcher"
 date: "`r Sys.Date()`"
 output: html_document
 ---
-```{r, warning= F, message=F}
+```{r, warning= F, message=F, echo = F}
 library(tidyverse)
+library(igraph)
+library(ggraph)
 df <- readRDS("~/Box/lgu/data_clean/df_final.RDS")
 pvp <- read.csv("~/Box/lgu/data_clean/pvpo_lgu.csv") %>% mutate(id = as.character(id))
 pto <- read.csv("~/Box/lgu/data_clean/uspto_lgus.csv")
@@ -21,18 +23,18 @@ colors9 <- RColorBrewer::brewer.pal(name = "Spectral", n = 9)
 This page summarizes plant breeding activities at US Land Grant Universities (LGUs) and the subsequent trends in technology transfer between LGUs and companies. Data for these summaries are combined across X sources: 
 
 This page summarizes plant breeding activities at US Land Grant Universities (LGUs) and the subsequent trends in technology transfer between universities and companies. Data for these summaries are combined across four sources:  
-1. PVP database
+1. PVP database  
 2. USPTO database  
 3. Licensing metadata from 25 LGUs, collected via FOIA requests  
 4. Company data collected from the D&B Hoovers database  
 
 ### How have LGUs been protecting their plant material?   
 
-The PVP and USPTO databases were scraped and automated text matching was used to identify applications by the 50 1862 LGUs. For PVPs, this meant looking for applications with Universities as Applicants, and for USPTO, this meant looking for LGUs as Assignees, as well as ??.  
+The PVP and USPTO databases were scraped and automated text matching was used to identify applications by the 50 1862 LGUs. For PVPs, this meant looking for applications with Universities as Applicants, and for USPTO, this meant looking for LGUs as Assignees, as well as Agricultural Research Centers and State applications that were observed in the licensing agreements (see below).  
 
 Between 1980-2020 `r nrow(ip)` applications have been submitted by LGUs, `r nrow(pvp)` as PVP and `r nrow(pto)` as USPTO (`r nrow(pto[str_detect(pto$WKU, '^PP'),])` as plant patents and `r nrow(pto[!(str_detect(pto$WKU, '^PP')),])` as utility patents). There have a steady increase in both IP types over time:
 
-```{r, out.width = "80%", fig.align= "center", echo = F}
+```{r ip over time, out.width = "80%", fig.align= "center", echo = F}
 ip %>% 
   group_by(issue_year) %>% 
   count() %>% 
@@ -43,14 +45,14 @@ ip %>%
                 position=position_stack(vjust=0.5)) +
   labs(x = "Year", y = "Count", title = "Plant protection over time") +
   theme_linedraw() +
-  theme(plot.title = element_text(hjust = 0.5, size = 10))
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
 ### What plant material have LGUs been developing? 
 
 For each of these protections, the protected crop was identified and categorized into one of 10 (?) groupings designated by the [FAO Agricultural Census](https://www.fao.org/3/a0135e/A0135E10.htm#app3), in line with Pardey et a. 20XX. The following crops have been identified:  
 
-```{r, out.width = "80%", fig.align= "center", echo = F}
+```{r ip crops, out.width = "80%", fig.align= "center", echo = F}
 ## A plot over time, colored by crop type
 ip %>% 
   group_by(crop_cat) %>% 
@@ -64,13 +66,13 @@ ip %>%
                 position=position_stack(vjust=0.5)) +
   labs(x = "", y = "Count", title = "Plant protection by crop category") +
   theme_linedraw() +
-  theme(plot.title = element_text(hjust = 0.5, size = 10),
+  theme(plot.title = element_text(hjust = 0.5),
         axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 States develop crop material at different rates.
 
-```{r, out.width = "100%", fig.align= "center", echo = F}
+```{r ip crops by state, out.width = "100%", fig.align= "center", echo = F}
 ip %>% 
   #filter(!is.na(uni_state)) %>% 
   ggplot(aes(x = issue_year)) +
@@ -80,7 +82,8 @@ ip %>%
   theme_linedraw() +
   facet_wrap(~uni_state, nrow = 5) +
   coord_cartesian(ylim = c(0,25)) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 ### What qualities do these plants have?  
@@ -109,7 +112,7 @@ Preliminary look at these data include the following features:
 * `r length(unique(df$variety_name))` unique plant varieties and/or breeding lines are licensed, which accounts for about `r round(100*(length(unique(df$variety_name))/nrow(df[ip$issue_year %in% 1995:2020,])), 1)`% of the plant protections granted during roughly that same time (1995-2020).  
 * These plant varieties span `r length(unique(df$crop_cat))` different crop categories, including: `r unique(df$crop_cat)`
 
-## Summaries over time   
+### Summaries over time   
 
 ```{r, out.width = "80%", fig.align= "center", echo = F}
 df %>% 
@@ -132,7 +135,7 @@ yrly_counts <- df %>% group_by(uni_state, license_yr) %>% count()
 
 This varies by state considerably. The number of licenses over the twenty year periods ranges from only `r min(counts$n)` in `r counts$uni_state[counts$n == min(counts$n)]` to `r max(counts$n)` in `r counts$uni_state[counts$n == max(counts$n)]`, with an annual average of `r round(mean(yrly_counts$n))` licenses. Below are the number of licenses for each state over time, with the y axis cut at 100.
 
-```{r, out.width = "80%", fig.align= "center"}
+```{r, out.width = "80%", fig.align= "center", echo = F}
 ggplot(df, aes(x = license_yr)) +
   geom_bar() +
   #geom_text(tab, aes(x = x, label = n)) + 
@@ -144,7 +147,7 @@ ggplot(df, aes(x = license_yr)) +
 ```
 
 
-```{r, out.width = "80%", fig.align= "center"}
+```{r, out.width = "80%", fig.align= "center", echo = F}
 df %>% 
   group_by(crop_cat) %>% 
   count() %>% 
@@ -157,11 +160,11 @@ df %>%
                 position=position_stack(vjust=0.5)) +
   labs(x = "", y = "Count", title = "Plant licensing by crop category") +
   theme_linedraw() +
-  theme(plot.title = element_text(hjust = 0.5, size = 10),
+  theme(plot.title = element_text(hjust = 0.5),
         axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-```{r, out.width = "80%", fig.align= "center"}
+```{r, out.width = "80%", fig.align= "center", echo = F}
 df %>% 
   group_by(license_yr, crop_cat) %>% 
   count() %>% 
@@ -176,9 +179,51 @@ df %>%
        title = "Number of licenses by crop category over time") +
   scale_fill_brewer(palette = "Spectral") +
   theme_linedraw() +
-  theme(plot.title = element_text(hjust = 0.1, size = 10)) 
+  theme(plot.title = element_text(hjust = 0.5)) 
 ```
 
+## Whos is the main beneficiary of LGU licensing?
+
+```{r, results = F, echo = F}
+edges <- df %>% select(uni_state, licensee) %>% 
+  filter(!is.na(licensee)) %>% 
+  group_by(uni_state, licensee)# %>% 
+  #count() %>% 
+  #rename(weight = n)
+nodes_uni <- df %>% select(uni_state, uni_region) %>% unique() %>% 
+  rename(node = uni_state, region = uni_region)
+nodes_licensee <- df %>% select(licensee, company_region) %>% unique() %>% 
+  rename(node = licensee, region = company_region)
+nodes <- rbind(nodes_uni, nodes_licensee) %>% 
+  filter(!is.na(node))
+net <- graph_from_data_frame(edges, vertices = nodes, directed = T)
+
+V(net)$deg <- log(igraph::degree(net, mode = "in"))+.5
+table(V(net)$deg)
+V(net)$label <- ifelse(V(net)$deg > 5, V(net)$name, "")
+V(net)$label.size <- 10
+V(net)$color <- ifelse(V(net)$region == "West" , "darkred",
+                ifelse(V(net)$region == "Northeast", "darkorange",
+                ifelse(V(net)$region == "North Central", "darkblue",
+                ifelse(V(net)$region == "South", "darkgreen",
+                       "grey"))))
+V(net)$label.color <- "darkgray"
+
+V(net)$bw <- betweenness(net)
+table(V(net)$bw)
+```
+
+```{r, out.width = "80%", fig.align= "center", echo = F}
+ggraph(net, layout = "stress", bbox = 20) +
+  geom_edge_link(width = 1, alpha = 0.2, color = "gray50") + 
+  geom_node_point(size = V(net)$deg, color = V(net)$color, alpha = 0.5) + 
+  geom_node_text(aes(label = V(net)$label),
+                 size = 4,
+                 color = "black") +
+  theme_graph() +
+  theme(text= element_text(size=10, family="Times"),
+        legend.position = "bottom") 
+```
 ```{r, out.width = "80%", fig.align= "center", echo = F, eval = F}
 df %>% 
   filter(!(company_size %in% c("Unknown", "Non-company"))) %>% 
@@ -211,7 +256,7 @@ df %>%
   theme(plot.title = element_text(hjust = 0.1, size = 10))
 ```
 
-```{r, out.width = "80%", fig.align= "center"}
+```{r, out.width = "80%", fig.align= "center", eval = F}
 df %>% 
   mutate(spatial_match = case_when(
     spatial_match == "Outside region" ~ "Extra-regional",
@@ -237,7 +282,7 @@ df %>%
 
 ```
 
-```{r, out.width = "80%", fig.align= "center"}
+```{r, out.width = "80%", fig.align= "center", eval = F}
 df %>% 
   filter(!is.na(agreement_type)) %>% 
   group_by(license_yr, agreement_type) %>% 
@@ -470,8 +515,9 @@ ggplot(df, aes(x = crop_cat)) +
   theme(axis.text.x= element_text(angle = 45, hjust = 1))
 ```
 
-## What are the innovative qualities for food crops?  
+## What are the innovative qualities for licensed food crops?  
 
+Results forthcoming...
 
 ```{r, eval = F, echo = F}
 # By exclusivity type?

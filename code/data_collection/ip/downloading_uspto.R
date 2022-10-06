@@ -12,7 +12,7 @@ options(timeout=1200)
 
 # Download all of the patents for 1976 to 2020 -- did this in chunks
 for(i in 2020){ 
-  for(j in c(5:52)){ 
+  for(j in c(42:52)){ 
     get_bulk_patent_data(
       year = i,         
       week = j,                   
@@ -22,7 +22,7 @@ for(i in 2020){
 }
 
 # Map functions
-x = 2019
+x = 2020
 y = 1:52
 pt <- data.frame()
 t1 <- Sys.time()
@@ -86,4 +86,4 @@ table(pt$ars)
 uni_plant_patents <- pt %>% 
   filter((lgu == T | uni_inventor == T | ars == T) & plant == T)
 
-write.csv(uni_plant_patents, "data_raw/other_ip/uspto_uni_plant_19.csv", row.names = F)
+write.csv(uni_plant_patents, "data_raw/other_ip/uspto_uni_plant_20.csv", row.names = F)

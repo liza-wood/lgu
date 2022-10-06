@@ -234,6 +234,13 @@ company <- company %>%
   ))
 table(company$company_size)
 
+company <- company %>% 
+  rename(company_country = country) %>% 
+  mutate(company_country = case_when(
+    is.na(company_country) ~ company_location,
+    T ~ company_country
+  ))
+
 # Which companies are in the license list but not the database?
 mistakes <- unique(license$licensee[!(license$licensee %in% unique(company$licensee) | 
                                         license$licensee %in% unique(other_licensee$licensee))])
