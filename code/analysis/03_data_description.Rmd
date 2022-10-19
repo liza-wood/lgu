@@ -20,7 +20,6 @@ ip <- full_join(pvp, pto) %>%
 colors9 <- RColorBrewer::brewer.pal(name = "Spectral", n = 9)
 ```
 
-This page summarizes plant breeding activities at US Land Grant Universities (LGUs) and the subsequent trends in technology transfer between LGUs and companies. Data for these summaries are combined across X sources: 
 
 This page summarizes plant breeding activities at US Land Grant Universities (LGUs) and the subsequent trends in technology transfer between universities and companies. Data for these summaries are combined across four sources:  
 1. PVP database  
@@ -32,7 +31,7 @@ This page summarizes plant breeding activities at US Land Grant Universities (LG
 
 The PVP and USPTO databases were scraped and automated text matching was used to identify applications by the 50 1862 LGUs. For PVPs, this meant looking for applications with Universities as Applicants, and for USPTO, this meant looking for LGUs as Assignees, as well as Agricultural Research Centers and State applications that were observed in the licensing agreements (see below).  
 
-Between 1980-2020 `r nrow(ip)` applications have been submitted by LGUs, `r nrow(pvp)` as PVP and `r nrow(pto)` as USPTO (`r nrow(pto[str_detect(pto$WKU, '^PP'),])` as plant patents and `r nrow(pto[!(str_detect(pto$WKU, '^PP')),])` as utility patents). There have a steady increase in both IP types over time:
+Between 1980-2020 `r nrow(ip)` applications have been submitted by LGUs, `r nrow(pvp)` as PVP and `r nrow(pto)` as USPTO (`r nrow(pto[str_detect(pto$id, '^PP'),])` as plant patents and `r nrow(pto[!(str_detect(pto$id, '^PP')),])` as utility patents). There have a steady increase in both IP types over time:
 
 ```{r ip over time, out.width = "80%", fig.align= "center", echo = F}
 ip %>% 
@@ -50,7 +49,7 @@ ip %>%
 
 ### What plant material have LGUs been developing? 
 
-For each of these protections, the protected crop was identified and categorized into one of 10 (?) groupings designated by the [FAO Agricultural Census](https://www.fao.org/3/a0135e/A0135E10.htm#app3), in line with Pardey et a. 20XX. The following crops have been identified:  
+For each of these protections, the protected crop was identified and categorized into one of 10 groupings designated by the [FAO Agricultural Census](https://www.fao.org/3/a0135e/A0135E10.htm#app3), in line with [Pardey et al. 2013](https://www.nature.com/articles/nbt.2467). The plant protections have been categorized into the following groups:  
 
 ```{r ip crops, out.width = "80%", fig.align= "center", echo = F}
 ## A plot over time, colored by crop type
@@ -88,7 +87,7 @@ ip %>%
 
 ### What qualities do these plants have?  
 
-Of the `r nrow(ip)` plant varieties that have been protected by PVPs or patents, we qualitatively coded a random subset of the plant descriptions (10%, `r nrow(ip)*.1`). Coding resulted in the identification of **X** themes: **[TO FILL IN]**. We used this 10% to train a neural network to classify plant description text into these categories, which is **X% effective**. The following categories are most prominent:
+Of the `r nrow(ip)` plant varieties that have been protected by PVPs or patents, we qualitatively coded a random subset of the plant descriptions (10%, `r nrow(ip)*.1`). Coding resulted in the identification of **X** themes: **[TO FILL IN]**. We used these `r nrow(ip)*.1` manual classification to train a neural network to classify plant description text into these categories, which is **X% effective**. The following categories are most prominent:
 
 ```{r}
 # Summary forthcoming: Frequency of crop qualities
@@ -103,16 +102,15 @@ These categories vary across crop in the following ways:
 
 ## Technology transfer: What happens to these varieties?   
 
-Beyond protecting material, universities **license** the plant material they develop -- some of it protected, others not -- to third parties to commercialize and/or continue to innovation. I collected records of licensing data between 2000-2020 for 25 LGUs.   
+Universities _license_ the plant material they develop -- some of it protected, others not -- to third parties to commercialize and/or continue to innovation. I collected records of licensing data between 2000-2020 for 25 LGUs to summarize what material is being licenses, and to whom.   
 
 Preliminary look at these data include the following features:  
 
 * `r nrow(df)` licensing agreements across `r length(unique(df$uni_state))` Land Grant Universities between 2000-2020  
 * Agreements are with `r length(unique(df$licensee[df$licensee_type == "company"]))` companies and `r length(unique(df$licensee[df$licensee_type == "other"]))` other entities (organizations, universities, individuals, etc.)  
-* `r length(unique(df$variety_name))` unique plant varieties and/or breeding lines are licensed, which accounts for about `r round(100*(length(unique(df$variety_name))/nrow(df[ip$issue_year %in% 1995:2020,])), 1)`% of the plant protections granted during roughly that same time (1995-2020).  
-* These plant varieties span `r length(unique(df$crop_cat))` different crop categories, including: `r unique(df$crop_cat)`
+* `r length(unique(df$variety_name))` unique plant varieties and/or breeding lines are licensed, but only **[X, X%]** are protected by PVPs and patents. In many other cases the licensed materials are breeding lines/unfinished varieties (X%), or ?  
 
-### Summaries over time   
+### How has licensing changed over time?    
 
 ```{r, out.width = "80%", fig.align= "center", echo = F}
 df %>% 
@@ -164,7 +162,7 @@ df %>%
         axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-```{r, out.width = "80%", fig.align= "center", echo = F}
+```{r, out.width = "80%", fig.align= "center", echo = F, eval = F}
 df %>% 
   group_by(license_yr, crop_cat) %>% 
   count() %>% 
@@ -182,7 +180,7 @@ df %>%
   theme(plot.title = element_text(hjust = 0.5)) 
 ```
 
-## Whos is the main beneficiary of LGU licensing?
+## Whos is licensing LGU plant material?  
 
 ```{r, results = F, echo = F}
 edges <- df %>% select(uni_state, licensee) %>% 
@@ -191,12 +189,17 @@ edges <- df %>% select(uni_state, licensee) %>%
   #count() %>% 
   #rename(weight = n)
 nodes_uni <- df %>% select(uni_state, uni_region) %>% unique() %>% 
-  rename(node = uni_state, region = uni_region)
+  rename(node = uni_state, region = uni_region) %>% 
+  mutate(type = 1)
 nodes_licensee <- df %>% select(licensee, company_region) %>% unique() %>% 
-  rename(node = licensee, region = company_region)
+  rename(node = licensee, region = company_region) %>% 
+  mutate(type = 0)
 nodes <- rbind(nodes_uni, nodes_licensee) %>% 
   filter(!is.na(node))
+#net <- make_bipartite_graph(nodes$type, edges, directed = F)
 net <- graph_from_data_frame(edges, vertices = nodes, directed = T)
+bipartite.mapping(net)
+V(net)$type <- bipartite_mapping(net)$type 
 
 V(net)$deg <- log(igraph::degree(net, mode = "in"))+.5
 table(V(net)$deg)
@@ -224,6 +227,7 @@ ggraph(net, layout = "stress", bbox = 20) +
   theme(text= element_text(size=10, family="Times"),
         legend.position = "bottom") 
 ```
+
 ```{r, out.width = "80%", fig.align= "center", echo = F, eval = F}
 df %>% 
   filter(!(company_size %in% c("Unknown", "Non-company"))) %>% 
@@ -256,7 +260,7 @@ df %>%
   theme(plot.title = element_text(hjust = 0.1, size = 10))
 ```
 
-```{r, out.width = "80%", fig.align= "center", eval = F}
+```{r, out.width = "80%", fig.align= "center", echo = F, eval = F}
 df %>% 
   mutate(spatial_match = case_when(
     spatial_match == "Outside region" ~ "Extra-regional",
@@ -282,7 +286,7 @@ df %>%
 
 ```
 
-```{r, out.width = "80%", fig.align= "center", eval = F}
+```{r, out.width = "80%", fig.align= "center", echo = F, eval = F}
 df %>% 
   filter(!is.na(agreement_type)) %>% 
   group_by(license_yr, agreement_type) %>% 
