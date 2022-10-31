@@ -10,8 +10,10 @@ library(tidyverse)
 library(igraph)
 library(ggraph)
 df <- readRDS("~/Box/lgu/data_clean/df_final.RDS")
-pvp <- read.csv("~/Box/lgu/data_clean/pvpo_lgu.csv") %>% mutate(id = as.character(id))
-pto <- read.csv("~/Box/lgu/data_clean/uspto_lgus.csv")
+pvp <- read.csv("~/Box/lgu/data_clean/pvpo_lgu.csv") %>% mutate(id = as.character(id)) %>% 
+  mutate(ip_type = "pvp")
+pto <- read.csv("~/Box/lgu/data_clean/uspto_lgus.csv") %>% 
+  mutate(ip_type = "pto")
 ip <- full_join(pvp, pto) %>% 
   filter(issue_year >= 1980 & issue_year <= 2020)
 ```
@@ -35,9 +37,9 @@ Between 1980-2020 `r nrow(ip)` applications have been submitted by LGUs, `r nrow
 
 ```{r ip over time, out.width = "80%", fig.align= "center", echo = F}
 ip %>% 
-  group_by(issue_year) %>% 
+  group_by(ip_type, issue_year) %>% 
   count() %>% 
-  ggplot(aes(x = issue_year, y = n,)) +
+  ggplot(aes(x = issue_year, y = n)) +
   geom_bar(stat = "identity") +
   stat_identity(geom = "text", colour = "white", size = 2,
                 aes(label = n),
@@ -87,7 +89,7 @@ ip %>%
 
 ### What qualities do these plants have?  
 
-Of the `r nrow(ip)` plant varieties that have been protected by PVPs or patents, we qualitatively coded a random subset of the plant descriptions (10%, `r nrow(ip)*.1`). Coding resulted in the identification of **X** themes: **[TO FILL IN]**. We used these `r nrow(ip)*.1` manual classification to train a neural network to classify plant description text into these categories, which is **X% effective**. The following categories are most prominent:
+Of the `r nrow(ip)` plant varieties that have been protected by PVPs or patents, we are qualitatively coded a random subset of the plant descriptions (10%, `r nrow(ip)*.1`). Coding resulted in the identification of nine preliminary themes: : physical/phenological traits (size, color, texture, flavor, scent), disease resistance, climate tolerance, seasonality, and non-traditional environments (e.g. marginal lands, organic). We used these `r nrow(ip)*.1` manual classifications to train a neural network to classify plant description text into these categories. 
 
 ```{r}
 # Summary forthcoming: Frequency of crop qualities
@@ -108,7 +110,7 @@ Preliminary look at these data include the following features:
 
 * `r nrow(df)` licensing agreements across `r length(unique(df$uni_state))` Land Grant Universities between 2000-2020  
 * Agreements are with `r length(unique(df$licensee[df$licensee_type == "company"]))` companies and `r length(unique(df$licensee[df$licensee_type == "other"]))` other entities (organizations, universities, individuals, etc.)  
-* `r length(unique(df$variety_name))` unique plant varieties and/or breeding lines are licensed, but only **[X, X%]** are protected by PVPs and patents. In many other cases the licensed materials are breeding lines/unfinished varieties (X%), or ?  
+* `r length(unique(df$variety_name))` unique plant varieties and/or breeding lines are licensed, but only **[X, X%]** are protected by PVPs and patents. In many other cases the licensed materials are breeding lines/unfinished varieties (X%).  
 
 ### How has licensing changed over time?    
 
@@ -182,13 +184,21 @@ df %>%
 
 ## Whos is licensing LGU plant material?  
 
+LGU plant material has been licensed to `r length(unique(df$licensee[df$licensee_type == "company"]))` companies and `r length(unique(df$licensee[df$licensee_type == "other"]))` public, non-profit, or individual licensees. The figures below display, by crop category, what operations are licensing material the most from LGUs. Nodes are sized based in the number of in-degrees, that is, the number of license agreements made, and colored by the region in which the operation is based: West in red, Northeast in orange, South in Green, North Central in blue, and any companies outside of the US are in grey.  
+
+
 ```{r, results = F, echo = F}
-edges <- df %>% select(uni_state, licensee) %>% 
+net_by_crop <- function(CROPCAT){
+edges <- df %>% 
+  filter(crop_cat == CROPCAT) %>% 
+  select(uni_state, licensee) %>% 
   filter(!is.na(licensee)) %>% 
   group_by(uni_state, licensee)# %>% 
   #count() %>% 
   #rename(weight = n)
-nodes_uni <- df %>% select(uni_state, uni_region) %>% unique() %>% 
+nodes_uni <- df %>% 
+  select(uni_state, uni_region) %>% 
+  unique() %>% 
   rename(node = uni_state, region = uni_region) %>% 
   mutate(type = 1)
 nodes_licensee <- df %>% select(licensee, company_region) %>% unique() %>% 
@@ -198,12 +208,11 @@ nodes <- rbind(nodes_uni, nodes_licensee) %>%
   filter(!is.na(node))
 #net <- make_bipartite_graph(nodes$type, edges, directed = F)
 net <- graph_from_data_frame(edges, vertices = nodes, directed = T)
-bipartite.mapping(net)
 V(net)$type <- bipartite_mapping(net)$type 
 
-V(net)$deg <- log(igraph::degree(net, mode = "in"))+.5
-table(V(net)$deg)
-V(net)$label <- ifelse(V(net)$deg > 5, V(net)$name, "")
+V(net)$deg <- log(igraph::degree(net, mode = "in")+1)+.5
+maxlabel <- as.numeric(names(table(V(net)$deg)[length(table(V(net)$deg))-5]))
+V(net)$label <- ifelse(V(net)$deg > maxlabel, V(net)$name, "")
 V(net)$label.size <- 10
 V(net)$color <- ifelse(V(net)$region == "West" , "darkred",
                 ifelse(V(net)$region == "Northeast", "darkorange",
@@ -213,19 +222,42 @@ V(net)$color <- ifelse(V(net)$region == "West" , "darkred",
 V(net)$label.color <- "darkgray"
 
 V(net)$bw <- betweenness(net)
-table(V(net)$bw)
+V(net)$comp <- igraph::components(net)$membership
+main <- which(table(V(net)$comp) == max(table(V(net)$comp)))[[1]]
+net <- induced_subgraph(net, V(net)$comp == main)
+return(net)
+}
 ```
 
-```{r, out.width = "80%", fig.align= "center", echo = F}
-ggraph(net, layout = "stress", bbox = 20) +
+```{r, echo = F}
+net_cereal <- net_by_crop("Cereals")
+net_fruit <- net_by_crop("Fruits & nuts")
+net_oilseed <- net_by_crop("Oilseeds")
+net_veg <- net_by_crop("Vegetables & melons")
+net_root <- net_by_crop("Roots & tubers")
+```
+
+```{r, results = F, echo = F}
+plot_net <- function(net, TITLE){
+  ggraph(net, layout = "stress", bbox = 20) +
   geom_edge_link(width = 1, alpha = 0.2, color = "gray50") + 
   geom_node_point(size = V(net)$deg, color = V(net)$color, alpha = 0.5) + 
   geom_node_text(aes(label = V(net)$label),
                  size = 4,
                  color = "black") +
-  theme_graph() +
-  theme(text= element_text(size=10, family="Times"),
-        legend.position = "bottom") 
+  theme_graph(base_family = "Arial") +
+  labs(title = TITLE)
+}
+```
+
+```{r, echo = F, out.width = c("50%","50%")}
+plot_net(net_cereal, "Cereal crops")
+plot_net(net_fruit, "Fruit and nut crops")
+```
+
+```{r,  echo = F, out.width = c("50%","50%")}
+plot_net(net_veg, "Vegetable crops")
+plot_net(net_oilseed, "Oilseed crops")
 ```
 
 ```{r, out.width = "80%", fig.align= "center", echo = F, eval = F}

@@ -121,36 +121,54 @@ pvp_random_selection$id <- ifelse(nchar(pvp_random_selection$id) == 7, paste0("0
 pvp_random_selection$invention_url <- paste0("https://apps.ams.usda.gov/CMS//AdobeImages/",pvp_random_selection$id , ".pdf")
 
 # Manual taking descriptions for now
-pdf1 <- tesseract::ocr(pvp_random_selection$invention_url[1])
-pdf1b <- pdf1[13]
+pdf1 <- tesseract::ocr(pvp_random_selection$invention_url[11])
+pdf1b <- pdf1[6]
 cat(pdf1b)
-pdf2 <- tesseract::ocr(pvp_random_selection$invention_url[2])
-pdf2b <- pdf2[11]
+pdf2 <- tesseract::ocr(pvp_random_selection$invention_url[12])
+pdf2b <- pdf2[6]
 cat(pdf2b)
-pdf3 <- tesseract::ocr(pvp_random_selection$invention_url[3])
-pdf3b <- pdf3[13]
+pdf3 <- tesseract::ocr(pvp_random_selection$invention_url[13])
+pdf3b <- pdf3[6]
 cat(pdf3b)
-pdf4 <- tesseract::ocr(pvp_random_selection$invention_url[4])
+pdf4 <- tesseract::ocr(pvp_random_selection$invention_url[14])
 pdf4b <- pdf4[5]
 cat(pdf4b)
-pdf5 <- tesseract::ocr(pvp_random_selection$invention_url[5])
-pdf5b <- pdf5[4]
+pdf5 <- tesseract::ocr(pvp_random_selection$invention_url[15])
+pdf5b <- pdf5[8]
 cat(pdf5b)
 
-pdf6 <- tesseract::ocr(pvp_random_selection$invention_url[6])
-pdf6b <- pdf6[8]
+pdf6 <- tesseract::ocr(pvp_random_selection$invention_url[16])
+pdf6b <- pdf6[6]
 cat(pdf6b)
-pdf7 <- tesseract::ocr(pvp_random_selection$invention_url[7])
-pdf7b <- pdf7[8] # this is breeders description though, not Exhibit B
+pdf7 <- tesseract::ocr(pvp_random_selection$invention_url[17])
+pdf7b <- pdf7[11] 
 cat(pdf7b)
-pdf8 <- tesseract::ocr(pvp_random_selection$invention_url[8])
+pdf8 <- tesseract::ocr(pvp_random_selection$invention_url[18])
+# doesn't exist
 pdf8b <- pdf8[5]
 cat(pdf8b)
-pdf9 <- tesseract::ocr(pvp_random_selection$invention_url[9])
+pdf9 <- tesseract::ocr(pvp_random_selection$invention_url[19])
+# missing pages
 pdf9b <- pdf9[7]
 cat(pdf9b)
-pdf10 <- tesseract::ocr(pvp_random_selection$invention_url[10])
+pdf10 <- tesseract::ocr(pvp_random_selection$invention_url[20])
+# doesn't exist
 pdf10b <- pdf10[7]
+cat(pdf10b)
+pdf8 <- tesseract::ocr(pvp_random_selection$invention_url[21])
+# doesn't exist
+pdf8b <- pdf8[5]
+cat(pdf8b)
+pdf9 <- tesseract::ocr(pvp_random_selection$invention_url[22])
+pdf9b <- pdf9[4]
+cat(pdf9b)
+pdf10 <- tesseract::ocr(pvp_random_selection$invention_url[23])
+# went with additional description
+pdf10b <- pdf10[c(11,12)]
+cat(pdf10b)
+pdf10 <- tesseract::ocr(pvp_random_selection$invention_url[24])
+# went with additional description
+pdf10b <- pdf10[4]
 cat(pdf10b)
 
 setwd("data_raw/ocr_pdfs")
