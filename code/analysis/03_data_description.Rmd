@@ -184,7 +184,7 @@ df %>%
 
 ## Whos is licensing LGU plant material?  
 
-LGU plant material has been licensed to `r length(unique(df$licensee[df$licensee_type == "company"]))` companies and `r length(unique(df$licensee[df$licensee_type == "other"]))` public, non-profit, or individual licensees. The figures below display, by crop category, what operations are licensing material the most from LGUs. Nodes are sized based in the number of in-degrees, that is, the number of license agreements made, and colored by the region in which the operation is based: West in red, Northeast in orange, South in Green, North Central in blue, and any companies outside of the US are in grey.  
+LGU plant material has been licensed to `r length(unique(df$licensee[df$licensee_type == "company"]))` companies and `r length(unique(df$licensee[df$licensee_type == "other"]))` public, non-profit, or individual licensees. The figures below display, by crop category, what operations are licensing material the most from LGUs. Nodes are sized based in the number of in-degrees, that is, the number of license agreements made, and colored by the region in which the operation is based: West in red, Northeast in orange, South in Green, North Central in blue, any companies outside of the US are in  Purple, and non-companies in grey.  
 
 
 ```{r, results = F, echo = F}
@@ -218,7 +218,8 @@ V(net)$color <- ifelse(V(net)$region == "West" , "darkred",
                 ifelse(V(net)$region == "Northeast", "darkorange",
                 ifelse(V(net)$region == "North Central", "darkblue",
                 ifelse(V(net)$region == "South", "darkgreen",
-                       "grey"))))
+                ifelse(V(net)$region == "International", "#702963",      
+                       "grey")))))
 V(net)$label.color <- "darkgray"
 
 V(net)$bw <- betweenness(net)
