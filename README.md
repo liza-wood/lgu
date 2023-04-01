@@ -13,6 +13,7 @@ There are three folders in the `script/` folder:
 -   `license_based_indices/` isolates data from the requested data to build two indices, one with `company` data, with attributes from the D&B database, and one with `innovations` data, where licensed innovations are matched to the IP external indices. Also inside `innovations` is the reading in and developing of a money to classify attributes of the innovations. (blue and grey)
 
 2.  `merging_cleaning/` brings together licensing and company data, innovation and award data, and innovation and inventor data (orange and light green)
+
 3.  `analysis/` summarizes the merges so far
 
 ![](img/lgu_workflow.pdf)

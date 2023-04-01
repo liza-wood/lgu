@@ -9,6 +9,7 @@ output: html_document
 ```{r}
 ##### SET THIS! #####
 path_to_box <- '~/Box/lgu/'
+library(tidyverse)
 ```
 
 ```{r setup, include = F}

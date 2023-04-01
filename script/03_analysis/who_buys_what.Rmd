@@ -18,8 +18,8 @@ knitr::opts_knit$set(root.dir = path_to_box)
 
 ```{r}
 setwd(path_to_box)
-licenses <- readRDS("data_clean/df_final.RDS")
-companies <- readRDS("")
+licenses <- read.csv("data_clean/license_df.csv")
+companies <- read.csv("data_clean/company_db_full.csv")
 ```
 
 # Week 2-6: Describe, analyze, and visualize the data

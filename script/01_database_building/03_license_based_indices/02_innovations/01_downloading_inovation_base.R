@@ -62,7 +62,7 @@ inventor <- select(df2, uni_state, inventor_last,
   unique() %>% 
   mutate(inventor_ID = 1:nrow(.))
 
-write.csv(invention, "data_clean/inventor_index.csv", row.names = F)
+write.csv(inventor, "data_clean/inventor_index.csv", row.names = F)
 
 df3 <- left_join(df2, invention)
 df3 <- left_join(df3, inventor)

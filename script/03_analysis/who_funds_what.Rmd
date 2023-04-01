@@ -20,7 +20,7 @@ knitr::opts_knit$set(root.dir = path_to_box)
 setwd(path_to_box)
 all_awards <- unique(read.csv('data_clean/awards_selected_states.csv'))
 breeder_awards <- read.csv('data_clean/funds_df.csv')
-inventors <- read.csv('data_clean/inventors.csv')
+inventors <- read.csv('data_clean/inventor_index.csv')
 ```
 
 

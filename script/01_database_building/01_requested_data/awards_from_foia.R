@@ -1,8 +1,12 @@
 # Awards
 library(stringr)
 library(dplyr)
+library(lubridate)
 # Set working director to Box
 setwd("~/Box/lgu")
+
+sample_states <- c("California", "Montana", "Minnesota", "Idaho", "Louisiana",
+                   "Michigan")
 
 # CALIFORNIA ----
 ca <- read.csv("data_raw/university_awards/California_awards.csv",
@@ -21,6 +25,15 @@ names <- data.frame(do.call('rbind', splt))
 colnames(names) <- c('inventor_last', 'inventor_first')
 la <- cbind(la, names)
 
+
+# MICHIGAN ----
+mi <- readxl::read_xlsx ("data_raw/university_awards/Michigan_from2012.xlsx")
+splt <- str_split(mi$FULL_NM, ',')
+names <- data.frame(do.call('rbind', splt))
+colnames(names) <- c('inventor_last', 'inventor_first')
+mi <- cbind(mi, names)
+
+
 # MINNESOTA ----
 mn <- readxl::read_xlsx("data_raw/university_awards/Minnesota_awards.xlsx")
 colnames(mn) <- mn[1,]
@@ -36,6 +49,13 @@ mn$`Award Start Date` <- mdy("01-01-1900")+as.numeric(mn$`Award Start Date`)-2
 mn$`Award Start Date`[2]
 mn$`Award End Date` <- mdy("01-01-1900")+as.numeric(mn$`Award End Date`)-2
 mn <- cbind(mn, names)
+
+# MONTANA ----
+mt <- readxl::read_xlsx ("data_raw/university_awards/Montana_awards.xlsx")
+splt <- str_split(mt$`Principal Investigator`, ',')
+names <- data.frame(do.call('rbind', splt))
+colnames(names) <- c('inventor_last', 'inventor_first')
+mt <- cbind(mt, names)
 
 # IDAHO ----
 # these are on multiple sheets so I need to go through each
@@ -65,11 +85,12 @@ id <- id[-rm1,]
 colnames(names) <- c('inventor_last', 'inventor_first')
 id <- cbind(id, names)
 
-head(ca)
+colnames(ca)
 colnames(ca) <- c("AwardID", "ProjectNo", "PIFullName", "Dept", "College", "Sponsor",
                   "SponsorType", "PrimeSponsor", "PrimeSponsorType", 
                   "ProjectTitle", "StartDate", "EndDate", "AwardAmt", "ProcessedDate",
                   'inventor_last', 'inventor_first')
+colnames(la)
 head(la$`Investigator Dept`)
 colnames(la) <- c("AwardID", "ProjectNo", "BudgetDate", "FY", "Sponsor", "AwardAmt",
                   "StartDate", "EndDate", "ProjectTitle", "PIFullName", "PIType",
@@ -81,6 +102,21 @@ colnames(mn) <- c("AwardType", "AwardPurpose", "AwardID", "ProjectTitle",
                   "PrimeSponsor", "PrimeSponsorID", "GenerateDate", 
                   "StartDate", "EndDate", "AwardAmt", "AwardStatus", "ContractStatus",
                   'inventor_last', 'inventor_first')
+
+colnames(mi)
+head(mi$ACTIVITY_TYPE_DESCRIPTION)
+colnames(mi) <- c("ProjectTitle", "AwardType", "PIFullName", "PIRole",
+                  "Dept", "Sponsor", "PrimeSponsor", "AwardAmt",
+                  "GenerateDate", "StartDate", "EndDate", "CostShareAmt",
+                  'inventor_last', 'inventor_first')
+
+colnames(mt)
+head(mt$Sponsor)
+colnames(mt) <- c("Dept", "PIFullName", "AwardID", "Sponsor", "SponsorTypeCat",
+                  "SponsorType", "AwardAmt", "MaxAmt",
+                  "StartDate", "EndDate", "ProjectTitle",
+                  'inventor_last', 'inventor_first')
+
 colnames(id)
 head(id$`Cost Share`)
 colnames(id) <- c("Sponsor", "AwardAmt", "StartDate", "EndDate", "ProjectTitle",
@@ -93,14 +129,19 @@ cols_int <- c("Sponsor", "AwardAmt", "StartDate", "EndDate", "ProjectTitle",
 ca <- select(ca, all_of(cols_int)) %>% mutate(uni_state = "California")
 la <- select(la, all_of(cols_int)) %>% mutate(uni_state = "Louisiana")
 mn <- select(mn, all_of(cols_int)) %>% mutate(uni_state = "Minnesota")
+mt <- select(mt, all_of(cols_int)) %>% mutate(uni_state = "Montana")
+mi <- select(mi, all_of(cols_int)) %>% mutate(uni_state = "Michigan")
 id <- select(id, all_of(cols_int)) %>% mutate(uni_state = "Idaho")
 
 head(ca$StartDate)
 head(la$StartDate)
 head(mn$StartDate)
 head(id$StartDate)
+head(mt$StartDate)
+head(mi$StartDate)
 
-awards <- rbind(ca, la) %>% rbind(mn) %>% rbind(id)
+awards <- rbind(ca, la) %>% rbind(mn) %>% rbind(id) %>% 
+  rbind(mt) %>% rbind(mi)
 awards$inventor_first <- trimws(awards$inventor_first)
 awards$inventor_first <- str_remove_all(awards$inventor_first, "\\.")
 awards$inventor_first_1 <- str_extract(awards$inventor_first, "^\\w{1}")
@@ -113,10 +154,6 @@ awards <- awards %>%
 
 write.csv(awards,'data_clean/awards_selected_states.csv', row.names = F)
 
-write.csv(ca,'data_clean/awards_ca.csv', row.names = F)
-write.csv(la,'data_clean/awards_la.csv', row.names = F)
-write.csv(mn,'data_clean/awards_mn.csv', row.names = F)
-write.csv(id,'data_clean/awards_id.csv', row.names = F)
 
 # OLD APPROACH, CA -----
 breeding <- awards %>% 

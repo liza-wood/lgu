@@ -254,7 +254,7 @@ df <- df %>%
     is.na(licensee_type.x) & !is.na(licensee_type.y) ~ licensee_type.y,
     T ~ licensee_type.x
   )) %>% 
-  select(-c(licensee_type.x, licensee_type.y, notes)) %>% 
+  select(-c(licensee_type.x, licensee_type.y)) %>% 
   unique() %>% 
   mutate(domestic = ifelse(is.na(domestic), F, T))
 table(df$licensee_type)
@@ -314,17 +314,17 @@ df$topuni <- ifelse(df$uni_state %in% top10uni, T, F)
 
 df$agreement_bi <- ifelse(df$agreement_type == "Exclusive license", 1,
                           ifelse(df$agreement_type == "Non-exclusive license", 0, NA))
-df$funding_amt_grpd <- ifelse(!is.na(df$funding_yr_grpd) & is.na(df$funding_amt_grpd), 
-                              0 , df$funding_amt_grpd)
-df$funding_amt_grpd_log <- log(df$funding_amt_grpd)
-df$funding_amt_grpd_log <- ifelse(df$funding_amt_grpd_log == "-Inf", 0, df$funding_amt_grpd_log)
+#df$funding_amt_grpd <- ifelse(!is.na(df$funding_yr_grpd) & is.na(df$funding_amt_grpd), 
+#                              0 , df$funding_amt_grpd)
+#df$funding_amt_grpd_log <- log(df$funding_amt_grpd)
+#df$funding_amt_grpd_log <- ifelse(df$funding_amt_grpd_log == "-Inf", 0, #df$funding_amt_grpd_log)
 df$local_sales_number <- ifelse(df$licensee_type == "other", 0, df$local_sales_number)
 df$local_sales_number_log <- log(df$local_sales_number)
 df$local_sales_number_log <- ifelse(df$local_sales_number_log == "-Inf", 0, df$local_sales_number_log)
-df$pres <- ifelse(df$license_yr == 2000, "Clinton",
-                  ifelse(df$license_yr %in% 2001:2009, "Bush",
-                         ifelse(df$license_yr %in% 2010:2016, "Obama",
-                                ifelse(df$license_yr %in% 2017:2021, "Trump", "Other"))))
+#df$pres <- ifelse(df$license_yr == 2000, "Clinton",
+#                  ifelse(df$license_yr %in% 2001:2009, "Bush",
+#                         ifelse(df$license_yr %in% 2010:2016, "Obama",
+#                                ifelse(df$license_yr %in% 2017:2021, "Trump", "Other"))))
 df$inregion <- ifelse(df$spatial_match == "Within region", 1,
                       ifelse(df$spatial_match == "Outside region", 0, NA))
 
