@@ -1,8 +1,11 @@
 # Scrape
-code/data_collection/company/
+code/data_collection/company/*
 cleaning_company.R
 scraping_company_public.R
 scraping_company_h.R
+
+#data
+data/lgu.RDS
 
 
 # History files

@@ -1,0 +1,116 @@
+---
+title: "Lessons for Exploring Data: An application with LGU plant development data"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, warning = F, message = F}
+library(learnr)
+library(tidyverse)
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = F, message = F)
+lgu <- readRDS("data/lgu.rds")
+rodents <- read_csv("data/portal_data_joined.csv")
+```
+
+
+## Reading in data
+
+### Reading in an RDS
+
+Write the R code required to read in our lgu data frame. For this exercise, pretend as if you are in your home directory and this data is stored in a folder called "data", located in your home directory. Call this data frame `lgu`.
+
+```{r readrds, exercise=TRUE}
+
+```
+
+```{r readrds-hint}
+lgu <- readRDS("data/lgu.rds")
+```
+
+
+### Reading in a CSV
+
+Write the R code required to read in the rodents CSV. For this exercise, pretend as if you are in your home directory and this data is stored in a folder called "data", located in your home directory. Call this data frame `rodents``.
+
+```{r readcsv, exercise=TRUE}
+
+```
+
+```{r readcsv-hint}
+rodents <- read_csv("data/portal_data_joined.csv")
+```
+
+
+## Exploring data
+
+### Data summaries 
+
+Take a look at the LGU data. What kinds of data are in there? Use a number of summary functions (e.g. `summary()`, `str()`, `colnames()`) to explore. Annotate in your code with what you see. 
+
+```{r explore, exercise=TRUE}
+
+
+
+
+
+
+
+```
+
+```{r explore-hint}
+# You can experiment with a number of functions, such as the following:
+## look at the column names
+colnames(lgu)
+## look at the structure with 
+str(lgu)
+## look at classes of individual columns
+class(lgu$effective_date) # weird this isn't a number, right?
+class(lgu$local_sales_number)
+class(lgu$crop_name_common)
+```
+
+### Identifying NAs
+
+Where are there NAs in the lgu data? Use the `is.na()` function in different columns to explore this
+
+```{r explorena, exercise=TRUE}
+
+
+
+
+
+
+
+```
+
+```{r explorena-hint}
+colnames(lgu)
+table(is.na(lgu$ornamental))
+table(is.na(lgu$crop_name_common))
+table(is.na(lgu$name))
+table(is.na(lgu$local_sales_number))
+```
+
+## Manipulating data
+
+### Filtering data  
+Let's try to summarize where our data is from. What states did we collect? Use the table() and/or unique() function to take a look at all of our states. Then let's subset our states to those for which we have company data. How does this change our states?
+
+```{r states, exercise=TRUE}
+
+
+
+
+```
+
+```{r states-hint}
+table(lgu$uni_states)
+
+lgu_co <- lgu %>% 
+  filter(!is.na(name))
+
+table(lgu_co$uni_states)
+```
+
+### Selecting data  

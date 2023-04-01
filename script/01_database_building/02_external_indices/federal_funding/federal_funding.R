@@ -47,29 +47,3 @@ df <- read.csv("data_clean/merged_df.csv") %>%
 intersect(colnames(df), colnames(fund_df))
 df <- merge(df, fund_df, all.x = T)
 
-df$agreement_bi <- ifelse(df$agreement_type == "Exclusive license", 1,
-                          ifelse(df$agreement_type == "Non-exclusive license", 0, NA))
-df$funding_amt_grpd <- ifelse(!is.na(df$funding_yr_grpd) & is.na(df$funding_amt_grpd), 
-                              0 , df$funding_amt_grpd)
-df$funding_amt_grpd_log <- log(df$funding_amt_grpd)
-df$funding_amt_grpd_log <- ifelse(df$funding_amt_grpd_log == "-Inf", 0, df$funding_amt_grpd_log)
-df$local_sales_number <- ifelse(df$licensee_type == "other", 0, df$local_sales_number)
-df$local_sales_number_log <- log(df$local_sales_number)
-df$local_sales_number_log <- ifelse(df$local_sales_number_log == "-Inf", 0, df$local_sales_number_log)
-df$pres <- ifelse(df$license_yr == 2000, "Clinton",
-           ifelse(df$license_yr %in% 2001:2009, "Bush",
-           ifelse(df$license_yr %in% 2010:2016, "Obama",
-           ifelse(df$license_yr %in% 2017:2021, "Trump", "Other"))))
-df$inregion <- ifelse(df$spatial_match == "Within region", 1,
-               ifelse(df$spatial_match == "Outside region", 0, NA))
-
-
-df$company_size <- factor(df$company_size, levels = c("Large ($10M+)",
-                                                      "Medium ($1M - $10M)",
-                                                      "Small ($220K - $1M)",
-                                                      "Very small (<$200K)",
-                                                      "Non-company", 
-                                                      "Unknown"))
-
-saveRDS(df, "data_clean/df_final.RDS")
-

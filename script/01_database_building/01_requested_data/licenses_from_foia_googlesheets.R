@@ -34,4 +34,8 @@ df3 <- df %>%
   pivot_wider(names_from = dept_count, values_from = department)
 
 df2[c(1:9, 12:14)] = data.frame(lapply(df2[c(1:9, 12:14)], as.character))
+df2 <- select(df2, -c(inventor_last_name, inventor_first_name,
+                      invention_name,
+                      invention_id, agreement_id, notes))
+df2 <- filter(df2, !is.na(variety_name))
 write.csv(df2, "data_clean/license.csv", row.names = F)

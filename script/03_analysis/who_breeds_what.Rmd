@@ -1,0 +1,34 @@
+---
+title: "Who breeds what?"
+subtitle: "Plant variety innovation at LGU Agricultural Colleges, 1980-2020"
+author: ""
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+##### SET THIS! #####
+path_to_box <- '~/Box/lgu/'
+```
+
+```{r setup, include = F}
+knitr::opts_chunk$set(echo = T, warning = F, message = F, results = F)
+knitr::opts_knit$set(root.dir = path_to_box)
+```
+
+```{r}
+setwd(path_to_box)
+pvp <- read.csv("data_clean/pvpo_lgu.csv") %>% mutate(id = as.character(id)) %>% 
+  mutate(ip_type = "pvp")
+pto <- read.csv("data_clean/uspto_lgus.csv") %>% 
+  mutate(ip_type = "pto")
+allip <- full_join(pvp, pto) %>% 
+  filter(issue_year >= 1980 & issue_year <= 2020)
+```
+
+
+```{r}
+setwd(path_to_box)
+innovations <- read.csv('data_clean/inventor_invention.csv')
+```
+

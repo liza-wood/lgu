@@ -1,0 +1,13 @@
+name: lgu-teaching-material
+title: lgu-teaching-material
+username:
+account: liza-wood
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 8269331
+bundleId: 6828527
+url: https://liza-wood.shinyapps.io/lgu-teaching-material/
+when: 1675963289.74041
+lastSyncTime: 1675963289.74042
+asMultiple: FALSE
+asStatic: FALSE
