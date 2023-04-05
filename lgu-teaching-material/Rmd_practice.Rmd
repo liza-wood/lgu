@@ -1,0 +1,83 @@
+---
+title: Intro to Rmd
+subtitle: And the YAML
+author: Liza Wood
+output: 
+  html_document:
+    toc: true
+---
+
+
+# Header 1
+
+## How markdown works
+
+**Bold font**
+
+Rmarkdown docoument
+
+-   Bulletpoints
+    -   sub bullet point
+
+[embedding links](www.google.com)
+
+## How R works
+
+```{r}
+2+2 
+```
+
+# The YAML ^^  
+
+YAMLs are the "set-up" for your Rmd file, indicated by three dashes to begin and end, and it can contain a series of information bits about the markdown document in between. Most important for us is the output, but this is a place to get more advanced (table of contents, LaTeX specification, ...).
+
+What goes in a YAML also depends on the kind of output you have: PDF/LaTex, website, etc. See here:
+https://cran.r-project.org/web/packages/ymlthis/vignettes/yaml-fieldguide.html
+
+If you want to output as a pdf, you will need to set up LaTeX. (see more: https://bookdown.org/yihui/rmarkdown-cookbook/install-latex.html)
+
+
+## YAML in R chunk
+
+* echo = T: will include the code chunk
+* include = F: will include the code chunk output or the code chunk
+* results = c("asis"): asis is for LaTeX output
+* fig.width = 7: default, but can adjust
+* fig.height = 7: default, but can adjust
+* warnings = F: prevent warnings from appearing
+
+```{r, echo = F}
+2+2
+```
+
+Use a setup chunk to set your default arguments inside your chunks
+
+```{r setup, include = F}
+
+# set default chunk options
+knitr::opts_chunk$set(echo = T, warning = F, message = F, results = F)
+# set default knit options
+path_to_box <- '~/Box/lgu/'
+knitr::opts_knit$set(root.dir = path_to_box)
+```
+
+
+```{r, results = T}
+awards <- read.csv('data_clean/awards_selected_states.csv')
+head(awards)
+library(DT)
+datatable(head(awards))
+# OR -- these are the same, depending on whether you want to load in the library all together or just get one function
+DT::datatable(head(awards))
+```
+
+
+```{r, message = T, warning = T}
+library(sna)
+library(igraph)
+?degree
+sna::degree
+select
+library(tidyverse)
+```
+

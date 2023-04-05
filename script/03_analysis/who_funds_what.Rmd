@@ -7,16 +7,17 @@ output: html_document
 ---
 
 ```{r}
-##### SET THIS! #####
+##### SET THIS TO YOUR OWN PATH! #####
 path_to_box <- '~/Box/lgu/'
 ```
 
 ```{r setup, include = F}
-knitr::opts_chunk$set(echo = T, warning = F, message = F, results = F)
+library(tidyverse)
+knitr::opts_chunk$set(echo = T, warning = F, message = F, results = T)
 knitr::opts_knit$set(root.dir = path_to_box)
 ```
 
-```{r}
+```{r, echo = F}
 setwd(path_to_box)
 all_awards <- unique(read.csv('data_clean/awards_selected_states.csv'))
 breeder_awards <- read.csv('data_clean/funds_df.csv')
@@ -24,7 +25,8 @@ inventors <- read.csv('data_clean/inventor_index.csv')
 ```
 
 
-```{r}
+```{r, echo = F}
+# Here I am adding a piece of information to the all_awards data frame, which is giving a logical value for whether or not the PI who recieved the award is on our list of breeders
 all_awards <- breeder_awards %>% 
   select(-funding) %>% 
   mutate(breeder = T) %>% 
@@ -33,32 +35,36 @@ all_awards <- breeder_awards %>%
 ```
 
 
-# Week 2-6: Describe, analyze, and visualize the data
-## Explore all awards
-* What are the columns in our data? Document the data by making a list of all the columns and writing our short descriptions of each of them
-* How much money has each university gotten each year? (Hint: group by uni_state and year, the add up their funding amounts)
-* Within UC Davis, how does funding vary across department?
-  * Filter the data so that you have a data frame with just UC Davis
-  * Now we can group by department to add up the funding
-* As you explore the data, take note: What issues do you see the with data? Is it 'clean'?
+# Exploring the data 
 
-## Explore all inventors and the inventors we have funding data for
-* From our inventors data, how many inventors do we know of based on our licensing data?
-* Compare this number to the number of inventors we have in our funding data. (Hint: You will need to filter all_awards so that breeder = T). How well does the funding data represent all of the inventors we have? 
-  * Why might explain why some inventors are missing?
-* Of the award data that we have for breeders, what departments are the breeders coming from? How many breeders are in each department?
-* Now considering only the breeder award data, How much money has each university gotten each year? (Hint: with your breeder data, group by uni_state and year, the add up their funding amounts)
-* Who are the top funders of awards to breeders?
+For the first couple weeks, I'd like us to describe, analyze, and visualize the data we have for 'awards' and 'inventors'. The awards data here is data requested from universities about the grants awarded to College of Agriculture and Environmental Science (or equivalent). This will include a wide range of departments for each university, none of them quite matching up. The inventor data is a brief index of the inventor names that we have from our licensing data. 
 
-# Week 5-6: Analyze component data
-## Summary statistics
-* Across ALL funding, what is the average funding **per researcher** for each university. What is the standard deviation? What is the average funding **per project** for each university. What is the standard deviation?
-* For just the BREEDERS, what is the average funding **per researcher** for each university. What is the standard deviation? What is the average funding **per project** for each university. What is the standard deviation?
-* T-test: is one university better funded than another? 
+Below I will provide an outline of general goals for describing, analyzing, and visualizing the data, but feel free to add your own questions/answers. Please use this script as a place to take notes on your process, identify places that you're stuck, or have questions about the data. Insert code chunks under each prompt to answer the questions and organize the Rmd that way.  
 
-# Week 7: Link the data together
-## Think about time
+## Describe the all_awards data
+1. What are the columns in our all_awards data? Write out some 'data documentation' by making a list of all the columns and writing our short descriptions of each of them. These will help you and your collaborators know what they're looking at when they first access the data.  If there are any irrelevant columns, remove them with the select function. 
 
-# Week 8: Analyze complete data
-## Relationship between funding and innovation 
-# Week 9-10: Write up final data
+2. Next we want to make some summaries of the all_awards data. Take a look at the columns we have and think about what you'd like to know about the data. For instance:
+  * Across all of the grants in our awards data, what is the average amount of funding a project receives?
+  * Does this amount vary across universities? For example, how much money has each university gotten each year? Try to report this as both an average per university per year, and also maybe as a sum per university per year. (Hint: Remember the group_by and summarize functions. You can group_by uni_state and year, then calculate the mean or sum up their funding amounts)
+  * Do a bit of exploring for UC Davis only (Hint: filter for just California). Within UC Davis, how does funding vary across department? Again, remember the group_by and summarize functions. 
+    * As you explore the data, take note: What issues do you see the with data? Is it 'clean'?
+
+## Describe the inventors data
+Here you'll want to repeat the same steps from above (in concept), with the inventors data.
+
+3. What are the columns in our inventors data? Write out some 'data documentation' by making a list of all the columns and writing our short descriptions of each of them. These will help you and your collaborators know what they're looking at when they first access the data. If there are any irrelevant columns, remove them with the select function. 
+
+4. Next we want to make some summaries of the inventors data. Take a look at the columns we have and think about what you'd like to know about the data. For instance:
+  * How many inventors do we have from each university? 
+  * How many _unique_ inventors do we have in our inventor data?
+   * How does this number compare to the number of all the _unique_ inventors (or PIs) we have in our awards data?  
+   * How does this number compare to the number of the breeder inventors (or PIs) we have in our awards data? (Hint: You will need to filter all_awards so that breeder == T before making comparison). Based on this, how well does the funding data represent all of the inventors we have? 
+     * Why might explain why some inventors are missing?
+     
+5. Consider breeder-award data:
+  * Of the award data that we have for breeder inventors (so keep using your filtered breeder == T data frame), what departments are the breeders coming from? How many breeders are in each department?
+  * Again considering only the breeder award data, how much money has each university's breeders gotten each year? (Hint: again, group_by uni_state and year again with this data frame)
+  * Who are the top funders of awards to breeders? (i.e. who is giving out the most money?)
+
+

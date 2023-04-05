@@ -1,0 +1,4 @@
+## Summary statistics
+* Across ALL funding, what is the average funding **per researcher** for each university. What is the standard deviation? What is the average funding **per project** for each university. What is the standard deviation?
+* For just the BREEDERS, what is the average funding **per researcher** for each university. What is the standard deviation? What is the average funding **per project** for each university. What is the standard deviation?
+* T-test: is one university better funded than another? 

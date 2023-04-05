@@ -7,40 +7,56 @@ output: html_document
 ---
 
 ```{r}
-##### SET THIS! #####
+##### SET THIS TO YOUR OWN PATH! #####
 path_to_box <- '~/Box/lgu/'
 ```
 
 ```{r setup, include = F}
-knitr::opts_chunk$set(echo = T, warning = F, message = F, results = F)
+library(tidyverse)
+knitr::opts_chunk$set(echo = T, warning = F, message = F, results = T)
 knitr::opts_knit$set(root.dir = path_to_box)
 ```
 
-```{r}
+```{r, echo = F}
 setwd(path_to_box)
-licenses <- read.csv("data_clean/license_df.csv")
+licenses <- read.csv("data_clean/license_df.csv") %>% 
+  select(-c(16:42,45:ncol(.)))
 companies <- read.csv("data_clean/company_db_full.csv")
 ```
 
-# Week 2-6: Describe, analyze, and visualize the data
-## Explore all awards
-* What are the columns in our data? Document the data by making a list of all the columns and writing our short descriptions of each of them
-* How many licenses does each university sell each year? (Hint: group by uni_state and year, the count up their licenses (rows))
-* Within UC Davis, how has the number of licenses changed over time?
-  * Filter the data so that you have a data frame with just UC Davis
-  * Now we can group by year to count up the licenses
-* As you explore the data, take note: What issues do you see the with data? Is it 'clean'?
+# Exploring the data 
 
-## Explore all the companies we have data for
-* How many licensees do we know of based on our licensing data?
-* Compare this number to the number of companies we have. (Hint: You will need to filter all_awards so that breeder = T). How well does the company data represent all of the licensees we have? 
-  * Why might explain why some licensees are missing?
-* Of the company daya that we have, where are they from? How big are they?
-* Considering the licensing data, which companies have been most active across the different years? (Hint: with your breeder data, group by uni_state and year, the add up their funding amounts)
-* Who are the most active (most licenses) companies across all years?
+For the first couple weeks, I'd like us to describe, analyze, and visualize the data we have for 'licenses' and 'companies'. The licenses data here is data requested from universities about the plant varieties they've licensing, and to whom. We matched these data to different companies, which are listed in the 'companies' data frame. Along with the company names are various company details from D&B, as well as a few attributes generated. 
 
-# Week 5-6: Analyze component data
-## Summary statistics
-* Across ALL funding, what is the average funding **per researcher** for each university. What is the standard deviation? What is the average funding **per project** for each university. What is the standard deviation?
-* For just the BREEDERS, what is the average funding **per researcher** for each university. What is the standard deviation? What is the average funding **per project** for each university. What is the standard deviation?
-* T-test: is one university better funded than another? 
+Below I will provide an outline of general goals for describing, analyzing, and visualizing the data, but feel free to add your own questions/answers. Please use this script as a place to take notes on your process, identify places that you're stuck, or have questions about the data. Insert code chunks under each prompt to answer the questions and organize the Rmd that way.  
+
+## Describe the licensing data  
+
+1. What are the columns in our licensing data? Write out some 'data documentation' by making a list of all the columns and writing our short descriptions of each of them (we've kind of done this already in practice). These will help you and your collaborators know what they're looking at when they first access the data. If there are any irrelevant columns, remove them with the select function. 
+
+2. Next we want to make some summaries of the licensing data (again, these may be similar to what we practiced last term). Take a look at the columns we have and think about what you'd like to know about the data. For instance:
+  * How many different licenses do we have...
+    * Per year?
+    * Per FAO crop category?
+    * Per the types of licensee (company or other?) (Hint: remember the group_by and count functions here)
+  * Of those types of licenses, how many licenses were agreed on by FAO crop category? (Hint: remember you can group by multiple columns)
+  * Does the number of licenses vary across universities? For example, how many licenses has the university agreed upon each year? 
+  * Do a bit of exploring for UC Davis only (Hint: filter for just California). Within UC Davis, revisit the questions above to create a bit of a licencins 'profile' for UC Davis (essentially, tell a story about UC Davis licensing)
+    * As you explore the data, take note: What issues do you see the with data? Is it 'clean'?
+
+## Describe the company data  
+
+Here you'll want to repeat the same steps from above (in concept), with the companies data.
+
+3. What are the columns in our companies data? Write out some 'data documentation' by making a list of all the columns and writing our short descriptions of each of them. These will help you and your collaborators know what they're looking at when they first access the data. If there are any irrelevant columns, remove them with the select function. 
+
+4. Next we want to make some summaries of the companies data. Take a look at the columns we have and think about what you'd like to know about the data. For instance:
+  * How many companies do we know of based on our company data?
+  * Compare this number to the number of _unique_ companies in the licensing data (Hint: you need to reduce the number of rows in the licensing data so that you only have unique licensee 'names' or the type == company). 
+    * Do these numbers match? Why not?
+  * Of the company information that we have in our companies data, where are the companies from? 
+  * How 'big' are the companies? E.g. What is the range of sales data across all of the companies? What is the average sales number across all of the companies?
+    * How does the average sales value differ between states? Between FAO crop types?
+     
+5. Consider company + licensing data:
+  * Within the licensing data, which companies have been most active across the different years? In other words, which companies have made the most licensing agreements over the years in our licensing data?  
