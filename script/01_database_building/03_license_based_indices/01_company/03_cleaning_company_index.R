@@ -201,6 +201,48 @@ nolinks <- select(nolinks, official_name, other_link, state) %>%
 db_full <- full_join(db_h, nolinks) %>% full_join(nothing)# 30 just cannot be found, another 119 have no db links but still have locations
 table(db_full$db_type)
 
+# Company data ---
+
+db_full$local_sales_number <- str_remove_all(db_full$local_sales_number, "\\$|\\,")
+db_full$local_sales_number <- ifelse(str_detect(db_full$local_sales_number, "\\.\\d\\d\\smillion"), 
+                                     paste0(str_remove_all(db_full$local_sales_number, "\\.|million|\\s"), "000"),
+                                     ifelse(str_detect(db_full$local_sales_number, "\\dM\\b"), 
+                                            paste0(str_remove_all(db_full$local_sales_number, "\\.|M|\\s"), "0000"),
+                                            ifelse(str_detect(db_full$local_sales_number, "\\dK\\b"), 
+                                                   paste0(str_remove_all(db_full$local_sales_number, "\\.|K|\\s"), "0"),
+                                                   ifelse(str_detect(db_full$local_sales_number, "\\dB\\b"), 
+                                                          paste0(str_remove_all(db_full$local_sales_number, "\\.|B|\\s"), "0000000"),
+                                                          db_full$local_sales_number))))
+db_full$local_sales_number <- as.numeric(db_full$local_sales_number)
+
+db_full$global_sales_number <- str_remove_all(db_full$global_sales_number, "\\$|\\,")
+db_full$global_sales_number <- ifelse(str_detect(db_full$global_sales_number, "\\.\\d\\d\\smillion"), 
+                                      paste0(str_remove_all(db_full$global_sales_number, "\\.|million|\\s"), "000"),
+                                      ifelse(str_detect(db_full$global_sales_number, "\\dM\\b"), 
+                                             paste0(str_remove_all(db_full$global_sales_number, "\\.|M|\\s"), "0000"),
+                                             ifelse(str_detect(db_full$global_sales_number, "\\dK\\b"), 
+                                                    paste0(str_remove_all(db_full$global_sales_number, "\\.|K|\\s"), "0"),
+                                                    ifelse(str_detect(db_full$global_sales_number, "\\dB\\b"), 
+                                                           paste0(str_remove_all(db_full$global_sales_number, "\\.|B|\\s"), "0000000"),
+                                                           db_full$global_sales_number))))
+db_full$global_sales_number <- as.numeric(db_full$global_sales_number)
+
+db_full$assets <- str_remove_all(db_full$assets, "\\$|\\,")
+db_full$assets <- ifelse(str_detect(db_full$assets, "\\.\\d\\d\\smillion"), 
+                         paste0(str_remove_all(db_full$assets, "\\.|million|\\s"), "000"),
+                         ifelse(str_detect(db_full$assets, "\\dM\\b"), 
+                                paste0(str_remove_all(db_full$assets, "\\.|M|\\s"), "0000"),
+                                ifelse(str_detect(db_full$assets, "\\dK\\b"), 
+                                       paste0(str_remove_all(db_full$assets, "\\.|K|\\s"), "0"),
+                                       ifelse(str_detect(db_full$assets, "\\dB\\b"), 
+                                              paste0(str_remove_all(db_full$assets, "\\.|B|\\s"), "0000000"),
+                                              db_full$assets))))
+db_full$assets <- as.numeric(db_full$assets)
+# DOUBLE CHECK ASSETS
+db_full$local_employee_number <- as.numeric(str_remove_all(db_full$local_employee_number, "\\,"))
+db_full$global_employee_number <- as.numeric(str_remove_all(db_full$global_employee_number, "\\,"))
+db_full$total_employee_number <- as.numeric(str_remove_all(db_full$total_employee_number, "\\,"))
+
 # Then there are the ones from NC that didn't make it to master, so for now I will categorize these as mistakes
 mistakes <- read.csv("data_indices/mistakes.csv") %>% 
   select(official_name) %>% 
@@ -208,11 +250,25 @@ mistakes <- read.csv("data_indices/mistakes.csv") %>%
 
 # More recently I went and grabbed some of these 'left-behinds' from D&B
 mistakes_db <- read.csv("data_raw/lgu_licensees_mistakes.csv")
+colnames(mistakes_db)[c(1,3,14,15,17,19,20,21,22,27,31,36,37)] <- c("name", "duns", "website", "local_sales_number", "assets", "local_employee_number", "total_employee_number", "description", "type", "parent","industry", "naics_code", "naics_description")
+mistakes_db$address <- paste(mistakes_db$Address.Line.1, mistakes_db$City, 
+                             mistakes_db$State.Or.Province, mistakes_db$Country.Region, sep = ", ")
+mistakes_db$state <- mistakes_db$State.Or.Province
+mistakes_db$naics2017 <- paste(mistakes_db$naics_code, mistakes_db$naics_description, sep = " - ")
+mistakes_db$currency <- "USD"
+mistakes_db$corp_link <- NA
+mistakes_db$yr_founded <- NA
+mistakes_db$incorp_location <- NA
+mistakes_db$link <- NA
+mistakes_db$global_employee_number <- NA
+mistakes_db$global_sales_number <- NA
+mistakes_db$other_link <- NA
+mistakes_db$db_type <- "hoovers_direct"
 
-db_h <- db_h %>% 
+mistakes_db <- mistakes_db %>% 
   mutate(official_name = case_when(
     # cannot find: Alternative Agricultural Products, Inc
-    name =="Wina LLC" ~ "The Whitetail Institute",                                  
+    name =="Wina, LLC" ~ "The Whitetail Institute",                                  
     name == "ZERAIM GEDERA LTD" ~ "Zeraim Gedera Seed Co.",  
     # Southern states cooperative in has several locations that are all separately listed
     name == "Vaughn Nursery LLC" ~ "Vaughn Nursery", 
@@ -221,15 +277,15 @@ db_h <- db_h %>%
     name == "Somerset Cukes Inc" ~ "Virginia Fork Produce Company",
     name == "Wilco Peanut Co., Ltd." ~ "Wilco Peanut Company",
     name == "Williston Peanuts, Inc." ~ "Williston Peanut, Inc.",
-    name == "Eure Seed Farms" ~ "Eure Seed Farms, Inc.",
+    name == "Eure Seed Farms, Inc." ~ "Eure Seed Farms",
     # Cannot find: Southern Farmers Seed Cooperative
     name == "Plant Pathways, Inc." ~ "The Plant Pathways Company, Inc.",
     name == "Shingleton Farms" ~ "Shingleton Farms, Inc",
     name == "Ryes Greenhouses, LLC" ~ "Ryes Greenhouses",
     # Cannot find: Sansabar LLC
-    name == "Sullivan Farms" ~ "Sullivan Farms, Inc.",
+    name == "Sullivan Farms, Inc." ~ "Sullivan Farms",
     name == "Tull Hill Farms, Inc" ~ "Tull Hill Farms, Inc.",
-    name == "W E Bailey" ~ ". E. Bailey & Son, Inc.",
+    name == "W E Bailey" ~ "W. E. Bailey & Son, Inc.",
     name == "Wadson's Farm Ltd." ~ "Wadson's Farm",
     name == "Wf Partnership" ~ "WF Partnership",
     # Cannot find: silverfox nursery
@@ -238,9 +294,13 @@ db_h <- db_h %>%
     name == "SUNSEEDS OOD" ~ "Sunseeds Company",
     name == "W. Atlee Burpee Company" ~ "W. Atlee Burpee Co.",
     # Cannot find Russell Halverson
-    T ~ official_name)) 
+    name == "Archer-Daniels-Midland Company" ~ "Archer Daniels Midland Company",
+    name == "Boomkwekerij René Nicolai" ~ "Boomkwekerij Rene Nicolai n.v.",
+    name == "Sino-Green Turf Co.,Ltd" ~ "Sino-Green Turf Co Ltd",
+    T ~ name)) %>% 
+  select(colnames(db_full))
 
-db_full <- full_join(db_full, mistakes)
+db_full <- full_join(db_full, mistakes_db)
 db_full$zipcode <- as.numeric(str_extract(db_full$address, "\\d{5}"))
 
 us.latlong <- read.csv("~/Box/osa_networks/data_combined/zipcodes/us-zip.csv") %>% 

@@ -142,6 +142,9 @@ head(mi$StartDate)
 
 awards <- rbind(ca, la) %>% rbind(mn) %>% rbind(id) %>% 
   rbind(mt) %>% rbind(mi)
+awards$AwardAmt <- ifelse(str_detect(awards$AwardAmt, "\\("), 
+                          str_remove(str_replace(awards$AwardAmt, "\\(", "-"), "\\)"), 
+                          awards$AwardAmt)
 awards$inventor_first <- trimws(awards$inventor_first)
 awards$inventor_first <- str_remove_all(awards$inventor_first, "\\.")
 awards$inventor_first_1 <- str_extract(awards$inventor_first, "^\\w{1}")

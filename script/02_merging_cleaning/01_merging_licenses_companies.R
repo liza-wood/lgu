@@ -145,11 +145,9 @@ other_licensee <- other_licensee %>%
   rename(licensee = official_name) %>% 
   select(licensee, type, licensee_type)
 # Need to read in other companies
-length(unique(company$licensee)) # we have 1164 on the downloaded master list
+length(unique(company$licensee)) # we have 1158 on the downloaded master list
 length(unique(other_licensee$licensee)) # 141 on other
-1164+141 # 1305
-length(unique(license$licensee)) 
-1305-1250 # 55 missing
+1158+141 # 1199
 
 license$licensee <- str_remove_all(tools::toTitleCase(trimws(license$licensee)),
                                    "[:punct:]")
@@ -157,48 +155,6 @@ company$licensee <- str_remove_all(tools::toTitleCase(trimws(company$licensee)),
                                    "[:punct:]")
 other_licensee$licensee <- str_remove_all(tools::toTitleCase(trimws(other_licensee$licensee)), 
                                           "[:punct:]")
-
-# Company data ---
-
-company$local_sales_number <- str_remove_all(company$local_sales_number, "\\$|\\,")
-company$local_sales_number <- ifelse(str_detect(company$local_sales_number, "\\.\\d\\d\\smillion"), 
-                 paste0(str_remove_all(company$local_sales_number, "\\.|million|\\s"), "000"),
-                 ifelse(str_detect(company$local_sales_number, "\\dM\\b"), 
-                        paste0(str_remove_all(company$local_sales_number, "\\.|M|\\s"), "0000"),
-                 ifelse(str_detect(company$local_sales_number, "\\dK\\b"), 
-                        paste0(str_remove_all(company$local_sales_number, "\\.|K|\\s"), "0"),
-                 ifelse(str_detect(company$local_sales_number, "\\dB\\b"), 
-                        paste0(str_remove_all(company$local_sales_number, "\\.|B|\\s"), "0000000"),
-                        company$local_sales_number))))
-company$local_sales_number <- as.numeric(company$local_sales_number)
-
-company$global_sales_number <- str_remove_all(company$global_sales_number, "\\$|\\,")
-company$global_sales_number <- ifelse(str_detect(company$global_sales_number, "\\.\\d\\d\\smillion"), 
-              paste0(str_remove_all(company$global_sales_number, "\\.|million|\\s"), "000"),
-                              ifelse(str_detect(company$global_sales_number, "\\dM\\b"), 
-              paste0(str_remove_all(company$global_sales_number, "\\.|M|\\s"), "0000"),
-                              ifelse(str_detect(company$global_sales_number, "\\dK\\b"), 
-              paste0(str_remove_all(company$global_sales_number, "\\.|K|\\s"), "0"),
-                              ifelse(str_detect(company$global_sales_number, "\\dB\\b"), 
-              paste0(str_remove_all(company$global_sales_number, "\\.|B|\\s"), "0000000"),
-                                    company$global_sales_number))))
-company$global_sales_number <- as.numeric(company$global_sales_number)
-
-company$assets <- str_remove_all(company$assets, "\\$|\\,")
-company$assets <- ifelse(str_detect(company$assets, "\\.\\d\\d\\smillion"), 
-             paste0(str_remove_all(company$assets, "\\.|million|\\s"), "000"),
-                               ifelse(str_detect(company$assets, "\\dM\\b"), 
-             paste0(str_remove_all(company$assets, "\\.|M|\\s"), "0000"),
-                               ifelse(str_detect(company$assets, "\\dK\\b"), 
-             paste0(str_remove_all(company$assets, "\\.|K|\\s"), "0"),
-                                ifelse(str_detect(company$assets, "\\dB\\b"), 
-             paste0(str_remove_all(company$assets, "\\.|B|\\s"), "0000000"),
-                                       company$assets))))
-company$assets <- as.numeric(company$assets)
-# DOUBLE CHECK ASSETS
-
-company$local_employee_number <- as.numeric(str_remove_all(company$local_employee_number, "\\,"))
-company$global_employee_number <- as.numeric(str_remove_all(company$global_employee_number, "\\,"))
 
 location <- c()
 for(j in 1:nrow(company)){
@@ -247,6 +203,7 @@ mistakes <- unique(license$licensee[!(license$licensee %in% unique(company$licen
 sort(unique(mistakes)) # These are three that I didn't get in the third public scrape; could have
 
 write.csv(company, "data_clean/company_db_full_clean.csv")
+write.csv(license, "data_clean/license_clean.csv")
 
 df <- merge(license, company, by = c('licensee'), all.x=TRUE)
 df <- merge(df, other_licensee, by = c('licensee'), all.x = TRUE) %>% unique()
@@ -321,8 +278,8 @@ df$agreement_bi <- ifelse(df$agreement_type == "Exclusive license", 1,
 #df$funding_amt_grpd_log <- log(df$funding_amt_grpd)
 #df$funding_amt_grpd_log <- ifelse(df$funding_amt_grpd_log == "-Inf", 0, #df$funding_amt_grpd_log)
 df$local_sales_number <- ifelse(df$licensee_type == "other", 0, df$local_sales_number)
-df$local_sales_number_log <- log(df$local_sales_number)
-df$local_sales_number_log <- ifelse(df$local_sales_number_log == "-Inf", 0, df$local_sales_number_log)
+#df$local_sales_number_log <- log(df$local_sales_number)
+#df$local_sales_number_log <- ifelse(df$local_sales_number_log == "-Inf", 0, df$local_sales_number_log)
 #df$pres <- ifelse(df$license_yr == 2000, "Clinton",
 #                  ifelse(df$license_yr %in% 2001:2009, "Bush",
 #                         ifelse(df$license_yr %in% 2010:2016, "Obama",
