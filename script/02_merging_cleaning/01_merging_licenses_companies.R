@@ -25,8 +25,8 @@ agreement <- read.csv("data_indices/agreements.csv")
 # --- Checking the data: Do we have our "official names" right? ----
 ## Crops ----
 # Crops indexed into categories based on FAO https://www.fao.org/3/a0135e/A0135E10.htm#app3
-length(unique(crop$crop_name_common)) # we have 260 crops on our master list (this includes the names in pvps that are not in the licenses)
-length(unique(license$crop_name_common)) # have 165 in the licenses
+length(unique(crop$crop_name_common)) # we have 335 crops on our master list (this includes the names in pvps that are not in the licenses)
+length(unique(license$crop_name_common)) # have 166 in the licenses
 # Here are the differences: the crops in common that are not in the master list
 unique(license$crop_name_common[!(license$crop_name_common %in% unique(crop$crop_name_common))]) # zero means we are okay
 # These are those that are in PVP but not in the licenses
@@ -149,7 +149,7 @@ length(unique(company$licensee)) # we have 1164 on the downloaded master list
 length(unique(other_licensee$licensee)) # 141 on other
 1164+141 # 1305
 length(unique(license$licensee)) 
-1305-1257 # 48 missing
+1305-1250 # 55 missing
 
 license$licensee <- str_remove_all(tools::toTitleCase(trimws(license$licensee)),
                                    "[:punct:]")
@@ -245,6 +245,8 @@ company <- company %>%
 mistakes <- unique(license$licensee[!(license$licensee %in% unique(company$licensee) | 
                                         license$licensee %in% unique(other_licensee$licensee))])
 sort(unique(mistakes)) # These are three that I didn't get in the third public scrape; could have
+
+write.csv(company, "data_clean/company_db_full_clean.csv")
 
 df <- merge(license, company, by = c('licensee'), all.x=TRUE)
 df <- merge(df, other_licensee, by = c('licensee'), all.x = TRUE) %>% unique()

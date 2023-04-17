@@ -205,6 +205,41 @@ table(db_full$db_type)
 mistakes <- read.csv("data_indices/mistakes.csv") %>% 
   select(official_name) %>% 
   mutate(db_type = "mistake")
+
+# More recently I went and grabbed some of these 'left-behinds' from D&B
+mistakes_db <- read.csv("data_raw/lgu_licensees_mistakes.csv")
+
+db_h <- db_h %>% 
+  mutate(official_name = case_when(
+    # cannot find: Alternative Agricultural Products, Inc
+    name =="Wina LLC" ~ "The Whitetail Institute",                                  
+    name == "ZERAIM GEDERA LTD" ~ "Zeraim Gedera Seed Co.",  
+    # Southern states cooperative in has several locations that are all separately listed
+    name == "Vaughn Nursery LLC" ~ "Vaughn Nursery", 
+    name == "Schlabach's Nursery" ~ "Schalbach Nursery",
+    name == "Severn Peanut Company, Inc." ~ "Severn Peanut Company",
+    name == "Somerset Cukes Inc" ~ "Virginia Fork Produce Company",
+    name == "Wilco Peanut Co., Ltd." ~ "Wilco Peanut Company",
+    name == "Williston Peanuts, Inc." ~ "Williston Peanut, Inc.",
+    name == "Eure Seed Farms" ~ "Eure Seed Farms, Inc.",
+    # Cannot find: Southern Farmers Seed Cooperative
+    name == "Plant Pathways, Inc." ~ "The Plant Pathways Company, Inc.",
+    name == "Shingleton Farms" ~ "Shingleton Farms, Inc",
+    name == "Ryes Greenhouses, LLC" ~ "Ryes Greenhouses",
+    # Cannot find: Sansabar LLC
+    name == "Sullivan Farms" ~ "Sullivan Farms, Inc.",
+    name == "Tull Hill Farms, Inc" ~ "Tull Hill Farms, Inc.",
+    name == "W E Bailey" ~ ". E. Bailey & Son, Inc.",
+    name == "Wadson's Farm Ltd." ~ "Wadson's Farm",
+    name == "Wf Partnership" ~ "WF Partnership",
+    # Cannot find: silverfox nursery
+    name == "Tarheel Native Trees" ~ "Tarheel Native Trees, Inc",
+    name == "Universal Corporation" ~ "Universal Leaf Tobacco",
+    name == "SUNSEEDS OOD" ~ "Sunseeds Company",
+    name == "W. Atlee Burpee Company" ~ "W. Atlee Burpee Co.",
+    # Cannot find Russell Halverson
+    T ~ official_name)) 
+
 db_full <- full_join(db_full, mistakes)
 db_full$zipcode <- as.numeric(str_extract(db_full$address, "\\d{5}"))
 
@@ -237,8 +272,10 @@ db_full <- left_join(db_full, us.latlong, by = c("zipcode" = "postcode"))
 
 write.csv(db_full, "data_clean/company_db_full.csv", row.names = F)
 
+table(db_full$db_type)
 #nothing = 30; don't know at all
-#no links = 119; found their website but no D&B trace
+#no links = 119; found their website but no D&B trace, so I have their address only
 #40 mistakes
+#3 need to re look in D&B
 
 
