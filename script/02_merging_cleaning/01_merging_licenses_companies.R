@@ -156,28 +156,7 @@ company$licensee <- str_remove_all(tools::toTitleCase(trimws(company$licensee)),
 other_licensee$licensee <- str_remove_all(tools::toTitleCase(trimws(other_licensee$licensee)), 
                                           "[:punct:]")
 
-location <- c()
-for(j in 1:nrow(company)){
-  for(i in 1:nrow(states)){
-    if(!is.na(company$address[j]) &  
-       (str_detect(company$address[j], paste0("\\s", states$abbr[i], ",")) |
-       str_detect(company$address[j], paste0("\\b", states$abbr[i])) |
-       str_detect(company$address[j], states$state[i]))){
-      location[j] <- states$state[i]
-    } else {
-      next
-    }
-  }
-}
 
-location <- c(location, rep("", nrow(company) - length(location)))
-company$company_location <- location
-company$company_location <- ifelse(is.na(company$company_location), 
-                           str_extract(company$address, countries.p), company$company_location)
-company$company_location <- ifelse(company$company_location == "", NA, company$company_location)
-
-company$domestic <- ifelse(company$company_location %in% countries, F, T)
-table(company$domestic)
 
 summary(company$local_sales_number)
 company <- company %>% 

@@ -191,13 +191,17 @@ db_h <- db_h %>%
   # Right now this gets rid of the 3 from the dbh scrape that I don;t know what they are
   filter(!is.na(official_name))
 
-nothing <- select(nolinks, official_name, other_link, state) %>% 
+nothing <- nolinks %>% 
   filter(is.na(state)) %>% 
-  mutate(db_type = "cannot find")
-nolinks <- select(nolinks, official_name, other_link, state) %>% 
   rename(address = state, link = other_link) %>% 
-  filter(!is.na(address)) %>% 
+  select(official_name, address, link) %>% 
+  mutate(db_type = "cannot find")
+nolinks <- nolinks %>% 
+  filter(!is.na(state)) %>% 
+  rename(address = state, link = other_link) %>% 
+  select(official_name, address, link) %>% 
   mutate(db_type = "no link but location")
+
 db_full <- full_join(db_h, nolinks) %>% full_join(nothing)# 30 just cannot be found, another 119 have no db links but still have locations
 table(db_full$db_type)
 
@@ -329,9 +333,47 @@ latlong <- rbind(us.latlong, ca.latlong, nl.latlong, sw.latlong, de.latlong, fr.
 
 db_full <- left_join(db_full, us.latlong, by = c("zipcode" = "postcode"))
 
+countries <- c("Spain", "Australia", "Chile", "Japan", "Italy",
+               "New Zealand", "Belgium", "Bermuda", "United Kingdom",
+               "Germany", "Netherlands", "Canada", "Norway", "France",
+               "Bulgaria", "Turkey", "Switzerland", "Denmark",
+               "Israel", "South Africa", "Sri Lanka", "India",
+               "Honduras", "Ireland", "Argentina", "Romania",
+               "Morocco", "Venezuela", "Costa Rica", "United Arab Emirates",
+               "Mexico", "Bahamas", "Portugal", "Austria", "China", "Poland",
+               "Brazil")
+countries.p <- paste(countries, collapse = "|")
+states <- read.csv("data_indices/states_abbr.csv")
+
+location <- c()
+for(j in 1:nrow(db_full)){
+  for(i in 1:nrow(states)){
+    if(!is.na(db_full$address[j]) &  
+       (str_detect(db_full$address[j], paste0("\\s", states$abbr[i], ",")) |
+        str_detect(db_full$address[j], paste0("\\b", states$abbr[i])) |
+        str_detect(db_full$address[j], states$state[i]))){
+      location[j] <- states$state[i]
+    } else {
+      next
+    }
+  }
+}
+
+location <- c(location, rep("", nrow(db_full) - length(location)))
+db_full$state <- location
+db_full$country <- ifelse(!is.na(db_full$state), "USA", db_full$country)
+
+db_full$country <- ifelse(is.na(db_full$country), 
+                             str_extract(db_full$address, countries.p), 
+                          db_full$country)
+
+db_full$domestic <- ifelse(db_full$country %in% countries, F, T)
+table(db_full$domestic)
 
 write.csv(db_full, "data_clean/company_db_full.csv", row.names = F)
 
+summary(db_full$global_employee_number)
+summary(db_full$local_employee_number)
 table(db_full$db_type)
 #nothing = 30; don't know at all
 #no links = 119; found their website but no D&B trace, so I have their address only
