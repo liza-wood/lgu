@@ -89,13 +89,13 @@ table(license$agreement_type)
 ## Licensees (companies and other) ----
 table(company$db_type)
 company <- unique(select(company, - c(link, description)))
-length(unique(company$official_name)) ; nrow(company) # 1164 and 1192, which means we have a lot of duplicates
+length(unique(company$official_name)) ; nrow(company) # 1161 and 1189, which means we have a lot of duplicates
 duplicates <- company$official_name[which(duplicated(company$official_name))] # any duplications?
 unique(sort(duplicates))
 rpl_na <- function(x){ifelse(x == "", NA, x)}
 company <- data.frame(sapply(company, rpl_na))
 
-# This function goes through and selects the company profile that 1. has hte most infor about it, 2. has total employee number, 3. has earlier est. year
+# This function goes through and selects the company profile that 1. has the most info about it, 2. has total employee number, 3. has earlier est. year -- these are the decision criteria I made for keeping one version of a duplicate company over another
 dup_df <- data.frame()
 for(i in unique(sort(duplicates))){
   dups <- filter(company, official_name == i)
@@ -156,31 +156,21 @@ company$licensee <- str_remove_all(tools::toTitleCase(trimws(company$licensee)),
 other_licensee$licensee <- str_remove_all(tools::toTitleCase(trimws(other_licensee$licensee)), 
                                           "[:punct:]")
 
-
-
-summary(company$local_sales_number)
-company <- company %>% 
-  mutate(company_size = case_when(
-    local_sales_number <= 200000 ~ "Very small (<$200K)",
-    local_sales_number > 200000 & local_sales_number <= 1000000 ~ "Small ($220K - $1M)",
-    local_sales_number > 1000000 & local_sales_number <= 10000000 ~ "Medium ($1M - $10M)",
-    local_sales_number > 10000000 ~ "Large ($10M+)",
-    T ~ "Unknown"
-  ))
-table(company$company_size)
-
-company <- company %>% 
-  rename(company_country = country) %>% 
-  mutate(company_country = case_when(
-    is.na(company_country) ~ company_location,
-    T ~ company_country
-  ))
+#summary(company$local_sales_number)
+#company <- company %>% 
+#  mutate(company_size = case_when(
+#    local_sales_number <= 200000 ~ "Very small (<$200K)",
+#    local_sales_number > 200000 & local_sales_number <= 1000000 ~ "Small ($220K - $1M)",
+#    local_sales_number > 1000000 & local_sales_number <= 10000000 ~ "Medium ($1M - $10M)",
+#    local_sales_number > 10000000 ~ "Large ($10M+)",
+#    T ~ "Unknown"
+#  ))
+#table(company$company_size)
 
 # Which companies are in the license list but not the database?
 mistakes <- unique(license$licensee[!(license$licensee %in% unique(company$licensee) | 
                                         license$licensee %in% unique(other_licensee$licensee))])
 sort(unique(mistakes)) # These are three that I didn't get in the third public scrape; could have
-
 write.csv(company, "data_clean/company_db_full_clean.csv")
 write.csv(license, "data_clean/license_clean.csv")
 

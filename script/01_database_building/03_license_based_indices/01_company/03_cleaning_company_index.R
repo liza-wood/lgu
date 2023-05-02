@@ -208,40 +208,102 @@ table(db_full$db_type)
 # Company data ---
 
 db_full$local_sales_number <- str_remove_all(db_full$local_sales_number, "\\$|\\,")
-db_full$local_sales_number <- ifelse(str_detect(db_full$local_sales_number, "\\.\\d\\d\\smillion"), 
-                                     paste0(str_remove_all(db_full$local_sales_number, "\\.|million|\\s"), "000"),
-                                     ifelse(str_detect(db_full$local_sales_number, "\\dM\\b"), 
-                                            paste0(str_remove_all(db_full$local_sales_number, "\\.|M|\\s"), "0000"),
-                                            ifelse(str_detect(db_full$local_sales_number, "\\dK\\b"), 
-                                                   paste0(str_remove_all(db_full$local_sales_number, "\\.|K|\\s"), "0"),
-                                                   ifelse(str_detect(db_full$local_sales_number, "\\dB\\b"), 
-                                                          paste0(str_remove_all(db_full$local_sales_number, "\\.|B|\\s"), "0000000"),
-                                                          db_full$local_sales_number))))
+db_full$local_sales_number <- str_replace(db_full$local_sales_number, "\\s?million\\s?", "M")
+db_full$local_sales_number <- str_replace(db_full$local_sales_number, "\\s?thousand\\s?", "K")
+db_full$local_sales_number <- str_replace(db_full$local_sales_number, "\\s?billion\\s?", "B")
+db_full$local_sales_number <- trimws(db_full$local_sales_number)
+
+db_full <- db_full %>% 
+  mutate(local_sales_number = case_when(
+    # x.xx M = xxx0000; +4 zeros
+    str_detect(local_sales_number, '\\d{0,3}\\.\\d{2}M$') ~ paste0(str_remove_all(local_sales_number, "\\.|M"), "0000"),
+    # x.x M = x00000; +5 zeros
+    str_detect(local_sales_number, '\\d{0,3}\\.\\d{1}M$') ~ paste0(str_remove_all(local_sales_number, "\\.|M"), "00000"),
+    # xxxM = xxx000000; +6 zeros
+    str_detect(local_sales_number, '\\d{1,3}M$') ~ paste0(str_remove_all(local_sales_number, "\\.|M"), "000000"),
+    # x.xx K = xxx0; + 1 zeros
+    str_detect(local_sales_number, '\\d{1,3}\\.\\d{2}K$') ~ paste0(str_remove_all(local_sales_number, "\\.|K"), "0"),
+    # x.x K = xx00; + 2 zeros
+    str_detect(local_sales_number, '\\d{1,3}\\.\\d{1}K$') ~ paste0(str_remove_all(local_sales_number, "\\.|K"), "00"),
+    # xK = x000; + 3 zeros
+    str_detect(local_sales_number, '\\d{1,3}K$') ~ paste0(str_remove_all(local_sales_number, "\\.|K"), "000"),
+    # x.xx K = xxx0; + 7 zeros
+    str_detect(local_sales_number, '\\d{1,3}\\.\\d\\dB$') ~ paste0(str_remove_all(local_sales_number, "\\.|B"), "0000000"),
+    # x.x K = xx00; + 8 zeros
+    str_detect(local_sales_number, '\\d{1,3}\\.\\dB$') ~ paste0(str_remove_all(local_sales_number, "\\.|B"), "00000000"),
+    # xK = x000000000; + 9 zeros
+    str_detect(local_sales_number, '\\d{1,3}B$') ~ paste0(str_remove_all(local_sales_number, "\\.|B"), "000000000"),
+    local_sales_number == "" ~ NA_character_,
+    T ~ NA_character_
+  ))
+
 db_full$local_sales_number <- as.numeric(db_full$local_sales_number)
 
+
 db_full$global_sales_number <- str_remove_all(db_full$global_sales_number, "\\$|\\,")
-db_full$global_sales_number <- ifelse(str_detect(db_full$global_sales_number, "\\.\\d\\d\\smillion"), 
-                                      paste0(str_remove_all(db_full$global_sales_number, "\\.|million|\\s"), "000"),
-                                      ifelse(str_detect(db_full$global_sales_number, "\\dM\\b"), 
-                                             paste0(str_remove_all(db_full$global_sales_number, "\\.|M|\\s"), "0000"),
-                                             ifelse(str_detect(db_full$global_sales_number, "\\dK\\b"), 
-                                                    paste0(str_remove_all(db_full$global_sales_number, "\\.|K|\\s"), "0"),
-                                                    ifelse(str_detect(db_full$global_sales_number, "\\dB\\b"), 
-                                                           paste0(str_remove_all(db_full$global_sales_number, "\\.|B|\\s"), "0000000"),
-                                                           db_full$global_sales_number))))
+db_full$global_sales_number <- str_replace(db_full$global_sales_number, "\\s?million\\s?", "M")
+db_full$global_sales_number <- str_replace(db_full$global_sales_number, "\\s?thousand\\s?", "K")
+db_full$global_sales_number <- str_replace(db_full$global_sales_number, "\\s?billion\\s?", "B")
+db_full$global_sales_number <- trimws(db_full$global_sales_number)
+
+db_full <- db_full %>% 
+  mutate(global_sales_number = case_when(
+    # x.xx M = xxx0000; +4 zeros
+    str_detect(global_sales_number, '\\d{0,3}\\.\\d{2}M$') ~ paste0(str_remove_all(global_sales_number, "\\.|M"), "0000"),
+    # x.x M = x00000; +5 zeros
+    str_detect(global_sales_number, '\\d{0,3}\\.\\d{1}M$') ~ paste0(str_remove_all(global_sales_number, "\\.|M"), "00000"),
+    # xxxM = xxx000000; +6 zeros
+    str_detect(global_sales_number, '\\d{1,3}M$') ~ paste0(str_remove_all(global_sales_number, "\\.|M"), "000000"),
+    # x.xx K = xxx0; + 1 zeros
+    str_detect(global_sales_number, '\\d{1,3}\\.\\d{2}K$') ~ paste0(str_remove_all(global_sales_number, "\\.|K"), "0"),
+    # x.x K = xx00; + 2 zeros
+    str_detect(global_sales_number, '\\d{1,3}\\.\\d{1}K$') ~ paste0(str_remove_all(global_sales_number, "\\.|K"), "00"),
+    # xK = x000; + 3 zeros
+    str_detect(global_sales_number, '\\d{1,3}K$') ~ paste0(str_remove_all(global_sales_number, "\\.|K"), "000"),
+    # x.xx K = xxx0; + 7 zeros
+    str_detect(global_sales_number, '\\d{1,3}\\.\\d\\dB$') ~ paste0(str_remove_all(global_sales_number, "\\.|B"), "0000000"),
+    # x.x K = xx00; + 8 zeros
+    str_detect(global_sales_number, '\\d{1,3}\\.\\dB$') ~ paste0(str_remove_all(global_sales_number, "\\.|B"), "00000000"),
+    # xK = x000000000; + 9 zeros
+    str_detect(global_sales_number, '\\d{1,3}B$') ~ paste0(str_remove_all(global_sales_number, "\\.|B"), "000000000"),
+    global_sales_number == "" ~ NA_character_,
+    T ~ NA_character_
+  ))
+
 db_full$global_sales_number <- as.numeric(db_full$global_sales_number)
 
 db_full$assets <- str_remove_all(db_full$assets, "\\$|\\,")
-db_full$assets <- ifelse(str_detect(db_full$assets, "\\.\\d\\d\\smillion"), 
-                         paste0(str_remove_all(db_full$assets, "\\.|million|\\s"), "000"),
-                         ifelse(str_detect(db_full$assets, "\\dM\\b"), 
-                                paste0(str_remove_all(db_full$assets, "\\.|M|\\s"), "0000"),
-                                ifelse(str_detect(db_full$assets, "\\dK\\b"), 
-                                       paste0(str_remove_all(db_full$assets, "\\.|K|\\s"), "0"),
-                                       ifelse(str_detect(db_full$assets, "\\dB\\b"), 
-                                              paste0(str_remove_all(db_full$assets, "\\.|B|\\s"), "0000000"),
-                                              db_full$assets))))
+db_full$assets <- str_replace(db_full$assets, "\\s?million\\s?", "M")
+db_full$assets <- str_replace(db_full$assets, "\\s?thousand\\s?", "K")
+db_full$assets <- str_replace(db_full$assets, "\\s?billion\\s?", "B")
+db_full$assets <- trimws(db_full$assets)
+
+db_full <- db_full %>% 
+  mutate(assets = case_when(
+    # x.xx M = xxx0000; +4 zeros
+    str_detect(assets, '\\d{0,3}\\.\\d{2}M$') ~ paste0(str_remove_all(assets, "\\.|M"), "0000"),
+    # x.x M = x00000; +5 zeros
+    str_detect(assets, '\\d{0,3}\\.\\d{1}M$') ~ paste0(str_remove_all(assets, "\\.|M"), "00000"),
+    # xxxM = xxx000000; +6 zeros
+    str_detect(assets, '\\d{1,3}M$') ~ paste0(str_remove_all(assets, "\\.|M"), "000000"),
+    # x.xx K = xxx0; + 1 zeros
+    str_detect(assets, '\\d{1,3}\\.\\d{2}K$') ~ paste0(str_remove_all(assets, "\\.|K"), "0"),
+    # x.x K = xx00; + 2 zeros
+    str_detect(assets, '\\d{1,3}\\.\\d{1}K$') ~ paste0(str_remove_all(assets, "\\.|K"), "00"),
+    # xK = x000; + 3 zeros
+    str_detect(assets, '\\d{1,3}K$') ~ paste0(str_remove_all(assets, "\\.|K"), "000"),
+    # x.xx K = xxx0; + 7 zeros
+    str_detect(assets, '\\d{1,3}\\.\\d\\dB$') ~ paste0(str_remove_all(assets, "\\.|B"), "0000000"),
+    # x.x K = xx00; + 8 zeros
+    str_detect(assets, '\\d{1,3}\\.\\dB$') ~ paste0(str_remove_all(assets, "\\.|B"), "00000000"),
+    # xK = x000000000; + 9 zeros
+    str_detect(assets, '\\d{1,3}B$') ~ paste0(str_remove_all(assets, "\\.|B"), "000000000"),
+    assets == "" ~ NA_character_,
+    T ~ NA_character_
+  ))
+
 db_full$assets <- as.numeric(db_full$assets)
+
 # DOUBLE CHECK ASSETS
 db_full$local_employee_number <- as.numeric(str_remove_all(db_full$local_employee_number, "\\,"))
 db_full$global_employee_number <- as.numeric(str_remove_all(db_full$global_employee_number, "\\,"))
