@@ -1,0 +1,435 @@
+---
+title: "Who buys what?"
+subtitle: "Plant material licensing for LGU Agricultural Colleges, 1980-2020"
+author: Adam Vera
+date: "2023-05-11"
+output: html_document
+---
+
+```{r, echo = F}
+##### SET THIS TO YOUR OWN PATH! #####
+path_to_box <- '~/../../Box/lgu/'
+```
+
+```{r setup, include = F}
+library(tidyverse)
+knitr::opts_chunk$set(echo = T, warning = F, message = F, results = T)
+knitr::opts_knit$set(root.dir = path_to_box)
+```
+
+```{r, echo = F}
+setwd(path_to_box)
+licenses <- read.csv("data_clean/license_clean.csv")
+companies <- read.csv("data_clean/company_db_full_clean.csv")
+```
+
+<!--- # Exploring the data
+
+For the first couple weeks, I'd like us to describe, analyze, and visualize the data we have for 'licenses' and 'companies'. The licenses data here is data requested from universities about the plant varieties they've licensing, and to whom. We matched these data to different companies, which are listed in the 'companies' data frame. Along with the company names are various company details from D&B, as well as a few attributes generated. 
+
+Below I will provide an outline of general goals for describing, analyzing, and visualizing the data, but feel free to add your own questions/answers. Please use this script as a place to take notes on your process, identify places that you're stuck, or have questions about the data. Insert code chunks under each prompt to answer the questions and organize the Rmd that way.  
+
+## Describe the licensing data  
+
+1. What are the columns in our licensing data? Write out some 'data documentation' by making a list of all the columns and writing our short descriptions of each of them (we've kind of done this already in practice). These will help you and your collaborators know what they're looking at when they first access the data. If there are any irrelevant columns, remove them with the select function. --->
+
+This report analyzes agricultural product licenses from land grant universities and the companies that purchase such products. This analysis explores the role specific universities have in this market, the breakdown of crops per region, and the financial status of companies. 
+
+# Licenses
+
+```{r, echo=FALSE, eval=FALSE}
+colnames(licenses)
+```
+
+## License data frame column names and descriptions:
+
+  1) X: Row Number
+  2) crop_name_common: common name of each crop
+  3) crop_name_scientific: scientific name of each crop with genus and species
+  4) variety_name: name of specific variety given by the inventor
+  5) licensee: buyer of license
+  6) agreement_type: type of agreement between licensee and uni_state; for example: exclusive, non-exclusive, etc.
+  7) effective_date: date of purchase/license
+  8) end_date: termination date of license agreement
+  9) uni_state: state of university
+  10) ip_name: intellectual property crop name
+  11) fao_class1: general classification of crop given by Food and Agricultural Organization (FAO)
+  12) fao_class2: more specific classification of crop given by FAO
+  13) ornamental: marks whether the crop is an ornamental (TRUE) or not (FALSE)
+  14) orn_use: type of ornamental for such crops that are TRUE
+  15) crop_cat: same as fao_class1 with proper formatting
+
+<!--- 2. Next we want to make some summaries of the licensing data (again, these may be similar to what we practiced last term). Take a look at the columns we have and think about what you'd like to know about the data. For instance: 
+  * How many different licenses do we have...
+    * Per year? --->
+    
+## Licenses from a temporal view
+
+Licenses can be grouped into five year time periods to determine the total number of licenses across all universities in the data frame and present changes in annual license total. To accurately represent this, manipulations of the data frame is required to determine the effective year of the license as well as group licenses into five year periods. The time periods begin in 1996 until the end of 2000 and end at the end of 2020 when data availability became inconsistent. All licenses formed earlier than 1996 are considered as "Older".
+    
+```{r}
+years <-  as.Date(licenses$effective_date, '%Y-%m-%d')
+
+effective_year <- as.numeric(format((as.Date(licenses$effective_date, '%Y-%m-%d')),'%Y'))
+
+licenses <- licenses %>%
+  mutate(effective_year = as.numeric(format((as.Date(effective_date, '%Y-%m-%d')),'%Y')))
+
+licenses <- licenses %>%
+  filter(effective_year < 2021) %>%
+  mutate(year_range = case_when(effective_year > 2015 ~ "2016-2020", effective_year > 2010 ~ "2011-2015", effective_year > 2005 ~ "2006-2010", effective_year > 2000 ~ "2001-2005", effective_year > 1995 ~ "1996-2000", TRUE ~ "Older"))
+``` 
+
+```{r, echo= FALSE, eval = FALSE}
+licenses %>% 
+  group_by(effective_year) %>%
+  count() %>%
+  arrange(-n)
+```
+
+Running the code below determines which universities are the most active. Based on its result, the top five universities by license count are considered to be top universities, while the remaining twenty universities are considered to be "Other". This is represented in a plot below per five year time period.
+
+```{r}
+licenses %>%
+  group_by(uni_state) %>%
+  count() %>%
+  arrange(-n)
+
+top_uni_list <- c("Washington", "Oregon", "North Carolina", "Texas", "Iowa")
+
+licenses <- licenses %>%
+  mutate(top_uni = case_when(uni_state %in% top_uni_list ~ uni_state, TRUE ~ "Other"))
+
+licenses$top_uni <- factor(licenses$top_uni, levels = c("Other", "Iowa", "Texas", "North Carolina", "Oregon", "Washington"))
+
+ggplot(licenses, aes(x = factor(year_range, level=c('Older', '1996-2000', '2001-2005', '2006-2010', '2011-2015', '2016-2020')), fill = top_uni)) + 
+  geom_bar() +
+  theme(axis.text.x = element_text(angle=70, vjust=0.5)) +
+  scale_fill_viridis_d(option = "C") +
+  labs(title = "License count by university",
+       x = "Year Range", y = "License Count", fill = "Top University") +
+  theme_classic()
+```
+
+## Licenses per crop type
+
+Crop type is resembled by FAO class, and can be grouped with university to determine the percentage that each university contributes to each crop type. NAs values for FAO class mostly resemble ornamental crops and have been removed. This report is more focused on food and cash crops.
+
+```{r}
+licenses %>% 
+  filter(!is.na(fao_class1)) %>%
+  count()
+  
+licenses %>% 
+  filter(!is.na(fao_class1)) %>%
+  group_by(fao_class1) %>%
+  count() %>%
+  arrange(-n)
+
+licenses %>% 
+  group_by(fao_class1, uni_state) %>%
+  count() %>%
+  arrange(-n)
+```
+
+The crop licensed the most of all FAO classes is cereals, making up 3232 of the 7028  licenses. Washington dominates the cereal market at 2122 licenses, licensing 65.7% (2122/3232) of cereals. With this code, the percentage of any crop in any state out of all available license data can be calculated.
+
+```{r, echo=FALSE, eval=FALSE}
+licenses %>%
+  group_by(uni_state, effective_year, year_range) %>%
+  count() %>%
+  ungroup() %>%
+  group_by(uni_state, year_range) %>%
+  summarize(mean = mean(n, na.rm = T))
+```
+
+
+<!--- * Do a bit of exploring for UC Davis only (Hint: filter for just California). Within UC Davis, revisit the questions above to create a bit of a licensing 'profile' for UC Davis (essentially, tell a story about UC Davis licensing) --->
+  
+This report comes from researchers at the University of California, Davis; therefore, observations about UC Davis' role in the market is interesting. Below, it is shown that California primarily produces fruits and nuts and all licenses are sold via exclusive licenses.
+
+```{r}
+licenses_ca <- licenses %>%
+  filter(uni_state == "California")
+
+licenses_ca %>%
+  group_by(fao_class1) %>%
+  count() %>%
+  arrange(-n)
+
+licenses_ca %>%
+  group_by(agreement_type) %>%
+  count() %>%
+  arrange(-n)
+```
+# Companies
+
+<!--- 3. What are the columns in our companies data? Write out some 'data documentation' by making a list of all the columns and writing our short descriptions of each of them. These will help you and your collaborators know what they're looking at when they first access the data. If there are any irrelevant columns, remove them with the select function. --->
+
+```{r, echo=FALSE}
+colnames(companies)[2] <- "dnb_name"
+colnames(companies)
+```
+
+## Column data frame column names and descriptions:
+
+  1) X: row number
+  2) dnb_name: company name (from dnb)
+  3) company_type: type of company
+  4) website: url to company website
+  5) parent: parent company if part of a larger corporation
+  6) corp_link: number of companies under parent?
+  7) industry: type of business
+  8) currency: currency used by business and of assets
+  9) assets: wealth
+  10) duns: ?
+  11) address: business address
+  12) naics2017: North American Industry Classification System
+  13) yr_founded: year founded
+  14) incorp_location: Additional location
+  15) local_employee_number: number of employees at business location on license
+  16) total_employee_number: vs global?
+  17) global_employee_number: vs total?
+  18) local_sales_number: gross income of business at location on license
+  19) global_sales_number: total gross income of company
+  20) db_type: ?
+  21) licensee: official name from master company list on licenses spreadsheet (used for joining)
+  22) zipcode: zip code
+  23) lat: latitude coordinate of company location
+  24) long: longitude coordinate of company location
+  25) country: country of company HQ location
+  26) state: US state of HQ
+  27) domestic: logical to determine if international or not; TRUE means US based
+  28) licensee_type: company or other
+  29) intermediate_employee_number: irrelevant column for calculations only
+  30) highest_employee_number: largest available data points for company employee number
+  31) highest_sales_number: largest available data points for company sales money
+  32) size_range_sales: determination of company size based on sales number
+  33) size_range_employee: determination of company size based on employee number
+  
+## Companies vs licensees
+
+Two data frames are joined for this report: Companies and Licenses. Licenses describe the agreement between universities and companies, while the Companies include information regarding the companies themselves. The unique number of licensees in the licenses data frame is larger than the number of companies in the companies data frame. This suggests that not all licensees are documented by the companies database used in this report.
+
+<!--- * Compare this number to the number of _unique_ companies in the licensing data (Hint: you need to reduce the number of rows in the licensing data so that you only have unique licensee 'names' or the type == company). --->
+```{r}
+companies %>%
+  count()
+
+licenses %>%
+  group_by(licensee) %>%
+  count() %>%
+  unique() %>%
+  arrange(-n)
+```
+
+## Company location
+
+Companies are primarily located in the United States with few international companies. The code below analyzes company headquarters location by country and U.S. state.
+
+```{r}
+companies %>%
+  group_by(country) %>%
+  count() %>%
+  arrange(-n)
+
+companies %>%
+  group_by(state) %>%
+  count() %>%
+  arrange(-n)
+```
+
+83.8% (973/1161) of companies are domestic. Of those, Washington state has the highest number of companies at 122. Oregon follows with 95 and North Carolina with 74.
+
+<!--- * How 'big' are the companies? E.g. What is the range of sales data across all of the companies? What is the average sales number across all of the companies? --->
+
+## Company size ranges
+
+```{r, echo=FALSE, eval=FALSE}
+companies <- companies %>%
+  mutate(intermediate_employee_number = replace(total_employee_number, is.na(total_employee_number), local_employee_number[is.na(total_employee_number)]))
+
+companies <- companies %>%
+  mutate(highest_employee_number = replace(global_employee_number, is.na(global_employee_number), intermediate_employee_number[is.na(global_employee_number)]))
+```
+
+```{r, echo=FALSE, eval=FALSE}
+companies <- companies %>%
+  mutate(size_range_employee = case_when(
+    highest_employee_number > 2000 ~ "large", highest_employee_number > 1500 ~ "medium", 
+    is.na(highest_employee_number) ~ NA_character_,
+    TRUE ~ "small"))
+
+companies %>%
+  group_by(size_range_employee) %>%
+  count() %>%
+  arrange(-n) 
+  
+companies %>%
+  group_by(size_range_employee) %>%
+  summarize(mean(highest_sales_number, na.rm = TRUE))
+```
+
+A single column with the highest sales number available per company was created in order to compare companies by their total sales, rather than just one branch or region. This data can be used to categorize companies into small and large based on their annual sales. The U.S. Small Business Administration determines what is a small business based on its industry. The average annual sales for the farming industry to be considered a small business is less than 3 million dollars. With this value as a division between small and large companies, the average small company makes 684K dollars	annually while that of large companies are 6.6B.
+
+```{r}
+companies <- companies %>%
+  mutate(highest_sales_number = replace(global_sales_number, is.na(global_sales_number),                                   local_sales_number[is.na(global_sales_number)]))
+
+companies <- companies %>%
+  mutate(size_range_sales = case_when(
+    highest_sales_number > 3000000 ~ "large",
+    is.na(highest_sales_number) ~ NA_character_,
+    TRUE ~ "small"))
+
+companies %>%
+  group_by(size_range_sales) %>%
+  count() %>%
+  arrange(-n)
+
+companies %>%
+  group_by(size_range_sales) %>%
+  summarize(mean(highest_sales_number, na.rm = TRUE))
+```
+
+
+## Company size per license
+
+The two data frames can be joined by the licensee column. With size ranges, licenses can be categorized by university, licensee size, and FAO class. NA values of license size and FAO class are removed in order to accurately represent university action.
+
+Of the 5804 licenses with size range data, 42.5% are large companies.
+```{r}
+licenses_joined <- left_join(licenses, companies, by = "licensee")
+
+licenses_joined %>%
+  group_by(size_range_sales) %>%
+  count()
+
+licenses_joined %>%
+  group_by(uni_state, size_range_sales) %>%
+  count() %>%
+  arrange(-n)
+
+licenses_joined_NA_sales <- licenses_joined %>%
+  filter(!is.na(size_range_sales))
+
+ggplot(licenses_joined_NA_sales, aes(x = top_uni, fill = size_range_sales)) + 
+  geom_bar() +
+  theme(axis.text.x = element_text(angle=70, vjust=0.5)) +
+  scale_fill_viridis_d(option = "C") +
+  labs(title = "Size of Companies in Licenses per University",
+       x = "University", y = "License Count", fill = "Company Size") +
+  theme_classic()
+```
+
+## Company size per crop
+
+The percentage of crops that are licensed to large companies by universities can be calculated by presenting FAO class per university with all licenses, then only those with large companies.
+
+```{r}
+licenses_joined_NA_fao_class1 <- licenses_joined %>%
+  filter(!is.na(fao_class1))
+
+ggplot(licenses_joined_NA_fao_class1, aes(x = top_uni, fill = fao_class1)) + 
+  geom_bar() +
+  theme(axis.text.x = element_text(angle=70, vjust=0.5)) +
+  scale_fill_viridis_d(option = "C") +
+  labs(title = "Crops per University",
+       x = "University", y = "License Count", fill = "FAO Class") +
+  theme_classic()
+
+licenses_joined_large <- licenses_joined %>%
+  filter(size_range_sales == "large")
+
+licenses_joined_large_NA_fao_class1 <- licenses_joined_large %>%
+  filter(!is.na(fao_class1))
+
+ggplot(licenses_joined_large_NA_fao_class1, aes(x = top_uni, fill = fao_class1)) + 
+  geom_bar() +
+  theme(axis.text.x = element_text(angle=70, vjust=0.5)) +
+  scale_fill_viridis_d(option = "C") +
+  labs(title = "Crops Licensed to Large Companies per University",
+       x = "University", y = "License Count", fill = "Company Size") +
+  theme_classic()
+```
+
+In conclusion, this analysis report allows for specific university action to be investigated further. Large companies play a role in the movement of grant money at land grant universities.
+
+```{r, echo=FALSE, eval=FALSE}
+licenses_joined %>%
+  filter(uni_state == "Washington") %>%
+  group_by(fao_class1) %>%
+  count()
+
+licenses_joined %>%
+  filter(uni_state == "Washington", size_range_sales == "large") %>%
+  group_by(fao_class1) %>%
+  count()
+```
+
+<!--- ex) WRONG Washington works with 62% (1470/2378) small companies. 88% (1278/1470) of those small companies are interested in cereals. This is not significantly different than what Washington's normal cereals production at 89% (2122/2378).
+    ### ex) Washington works with 6.6% (157/2378) large companies. 100% (157/157) of those large companies are interested in cereals. This is significantly different than what Washington's normal cereals production at 89% (2122/2378). --->
+
+```{r, echo=FALSE, eval=FALSE}
+# JOIN: 
+
+# instead of finding the percentage of small/large companies in university licenses, this can determine how big/wealthy the companies are based on university. Also, this can determine how big/wealthy the companies are that work with different crops
+
+licenses_joined %>%
+  group_by(uni_state) %>%
+  summarize(mean(highest_sales_number, na.rm = TRUE))
+
+licenses_joined %>%
+  group_by(fao_class1) %>%
+  summarize(mean(highest_sales_number, na.rm = TRUE))
+
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
+licenses %>%
+  group_by(licensee) %>%
+  count() %>%
+  arrange(-n)
+
+licenses_wa_gen <- licenses %>%
+  filter(licensee == "Washington Genetics")
+
+licenses_wa_gen %>%
+  group_by(effective_year) %>%
+  count() %>%
+  arrange(-n)
+
+licenses_wscia <- licenses %>%
+  filter(licensee == "Washington State Crop Improvement Association WSCIA")
+
+licenses_wscia %>%
+  group_by(effective_year) %>%
+  count() %>%
+  arrange(-n)
+
+# Two Washington based licenses have made the most over the years. Washington Genetics has been making active licenses since 2015, peaking in 2016. WSCIA has been making active licenses since 2010, peaking in 2016. I will complete this action for multiple licensees.
+```
+
+```{r, echo=FALSE, eval=FALSE}
+licenses %>%
+ group_by(licensee) %>%
+  count()
+
+summary(companies$name)
+# the total rows for licensee in each data frame do not match
+
+# companies_unique <- companies %>% select(-link) %>% unique()
+  ## this is the format if I wanted to filter out a column
+  ## if I wanted to filter out a specific value, can use exclamation point
+
+companies %>%
+  group_by(licensee) %>%
+  count() %>%
+  filter(n>1)
+# this yields 0 output, meaning every licensee in companies in unique
+
+# licenses_joined <- left_join(licenses, companies, by = c("licensee"="official_name"))
+  ## if ever wanted to join dfs by different column names
+```
+
