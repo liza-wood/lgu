@@ -31,5 +31,6 @@ allip <- full_join(pvp, pto) %>%
 ```{r}
 setwd(path_to_box)
 innovations <- read.csv('data_clean/inventor_invention.csv')
+awards_for_breeder <- read.csv('data_clean/funds_df.csv')
 ```
 

@@ -8,9 +8,9 @@ inventors_sample <- inventors %>%
   filter(uni_state %in% sample_states) 
 
 # In our sample, do we have inventor names for all of them?
-table(is.na(inventions_sample$inventor_last))
+table(is.na(inventors_sample$inventor_last))
 
-awards_sample <- read.csv("data_clean/awards_selected_states.csv")
+awards_sample <- read.csv("~/Box/lgu/data_clean/awards_selected_states.csv")
 
 # Do we have any NAs for inventor_names in the awards?
 table(is.na(awards_sample$inventor_last))
@@ -88,7 +88,7 @@ inventors_awards_sample_allyrs <- inventors_awards_sample %>%
   group_by(uni_state, inventor_last, inventor_first_1) %>% 
   summarize(funding = sum(amt)) 
 
-write.csv(inventors_awards_sample_allyrs, 'data_clean/funds_df.csv', row.names = F)
+write.csv(inventors_awards_sample_allyrs, '~/Box/lgu/data_clean/funds_df.csv', row.names = F)
 
 inventors_awards_sample_cat <- inventors_awards_sample %>% 
   mutate(award_date_range = case_when(
