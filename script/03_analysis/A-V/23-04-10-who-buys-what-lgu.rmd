@@ -313,8 +313,15 @@ licenses_joined %>%
 licenses_joined_NA_sales <- licenses_joined %>%
   filter(!is.na(size_range_sales))
 
-ggplot(licenses_joined_NA_sales, aes(x = top_uni, fill = size_range_sales)) + 
-  geom_bar() +
+licenses_joined_NA_sales %>% 
+  group_by(top_uni, size_range_sales) %>% 
+  count() %>% 
+  ungroup() %>% 
+  group_by(top_uni) %>% 
+  mutate(percent = n/sum(n)) %>% 
+  ggplot(aes(x = top_uni, y = n,  fill = size_range_sales)) + 
+  geom_col() +
+  geom_text(aes(label = percent, y = n)) +
   theme(axis.text.x = element_text(angle=70, vjust=0.5)) +
   scale_fill_viridis_d(option = "C") +
   labs(title = "Size of Companies in Licenses per University",
@@ -431,5 +438,11 @@ companies %>%
 
 # licenses_joined <- left_join(licenses, companies, by = c("licensee"="official_name"))
   ## if ever wanted to join dfs by different column names
+```
+
+** Liza added **
+
+```{r}
+write.csv(licenses_joined, "data_clean/licenses_joined.csv", row.names = F)
 ```
 

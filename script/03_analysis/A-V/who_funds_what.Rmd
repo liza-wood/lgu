@@ -356,13 +356,15 @@ n_distinct(all_awards$inventor_ID)
 -   breeder --\> "inventorlist_check"
 -   inventor_first --\> "inventor_firstname"
 
+** Liza started editing here ** 
 ```{r}
 colnames(inventors)
-
 colnames(inventors)[2] = "inventor_lastname"
-colnames(inventors)[3] = "inventor_first"
+colnames(inventors)[3] = "inventor_firstname"
 colnames(inventors)[4] = "inventor_first_initial"
-colnames(inventors)[5] = "inventor_firstname"
+
+colnames(all_awards_revised)
+colnames(all_awards_revised)[3] = "inventor_first_initial"
 ```
 
 ```{r}
@@ -371,3 +373,35 @@ colnames(inventors)[5] = "inventor_firstname"
 #how do I join by more than one field?
 
 ```
+
+Join based on first initial to get the most flexible match, but not over-general (use uni_name)
+```{r}
+inventors_awards <- left_join(inventors, all_awards_revised,
+                              by = c("uni_state", "inventor_lastname",
+                                      "inventor_first_initial"))
+# remove the ones we don't have award data for
+inventors_awards <- filter(inventors_awards, !is.na(ProjectTitle))
+```
+
+
+
+```{r}
+# See the flexibility we achieved
+inventors_awards %>% 
+  select(uni_state, inventor_lastname, inventor_first_initial, 
+         inventor_firstname.x, inventor_firstname.y) %>% 
+  unique() %>% 
+  arrange(inventor_lastname)
+
+# How many matches?
+inventors_awards %>% 
+  filter(!is.na(Sponsor)) %>% 
+  select(uni_state, inventor_lastname) %>% 
+  unique() %>% 
+  nrow()
+# 53 matches
+
+write.csv(inventors_awards, "data_clean/inventor_awards.csv", row.names = F)
+
+```
+
