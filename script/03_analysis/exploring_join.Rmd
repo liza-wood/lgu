@@ -1,0 +1,37 @@
+```{r}
+library(tidyverse)
+df3 <- read.csv("~/Box/lgu/data_clean/joined_inventions_licenses_awardstotal.csv")
+```
+
+* Note: Is the sum the best thing to do in the join to account for time? (DO THIS)
+* Is there a relationship between company size and 'awards money in' to different varieties?  
+* Is there a relationship between license type (Exclusive vs not) and 'awards money in' to different varieties?  
+  * If the crop is sold non-exclusively, how many licensees are there? Can we get a sense of how much money in is then 'redistributed' (broad sense) back into licensees? 
+
+
+Reverse engineer: get just each unique variety and their funding amount (funds associated with breeder) -- need to remove the company info, since that is the dupliate
+
+```{r}
+df2 <- df3 %>% 
+  select(-c(licensee:size_range_sales)) %>% 
+  unique()
+```
+
+What are the total funds per each crop category?
+
+```{r}
+df2 %>% 
+  group_by(crop_cat) %>% 
+  summarize(funds_per_crop = sum(total_avg_funds, na.rm = T)) %>% 
+  arrange(-funds_per_crop)
+```
+
+What about average?
+
+```{r}
+df2 %>% 
+  group_by(crop_cat) %>% 
+  summarize(avg_funds_per_crop = mean(total_funds, na.rm = T)) %>% 
+  arrange(-avg_funds_per_crop)
+```
+

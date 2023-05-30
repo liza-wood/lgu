@@ -38,22 +38,42 @@ colnames(inv_lic)[18] <- "inventor_first_initial"
 # This is super 'long' because it takes every award any inventor has ever gotten, and associates it with every plant they've ever bred. Cleaning and playing with time frames here is defnitely something of interest for the future
 inventor_allmoney <- left_join(inv_lic, inv_award)
 
+
+# Example
+# How many varieties has Shaw developed?
+shaw_varieties <- filter(inv_lic, inventor_lastname == "Shaw")
+shaw_awards <- filter(inv_award, inventor_lastname == "Shaw")
+shaw_varieties_licenses <- filter(lic_co, variety_name %in% shaw_varieties$variety_name)
+
 # But as an intermediate step, we can sum up all the money per inventor so that our join doesnt blow up
 inv_award_total <- inv_award %>% 
   group_by(uni_state, inventor_lastname, inventor_first_initial) %>% 
   summarize(total_funds = sum(amt, na.rm = T))
 
-df1 <- left_join(inv_lic, inv_award_total)
+# We want to get a count of the inventions each inventor has created
+
+inventor_counts <- inv_lic %>% 
+  group_by(uni_state, inventor_lastname, inventor_first_initial) %>% 
+  count()
+
+df.5 <- left_join(inv_award_total, inventor_counts)
+
+# Average award amount divded by the number of varieties they've licensed
+df.5$avg_funds <- df.5$total_funds/df.5$n
+
+df1 <- left_join(inv_lic, df.5)
 
 # Now, we have many inventors per variety, but mainly we want to associate a sum of money with the variety now. SO we can cut inventor out, in a way, and just get one value per variety
-grp_by_cols <- colnames(df1)[-c(15:21)]
-grp_by_cols <- paste(grp_by_cols, collapse = ", ")
+
 df1_reduced <- df1 %>% 
+  # remove is old award values -- total_funds, n
+  select(-c(total_funds, n)) %>% 
   # group by everything but inventor info, which should be equivalent to each invention
   group_by(uni_state, crop_name_common, variety_name, invention_url, 
            year_filed, ip_type, notes, other_links, pvp_id, pto_id, 
            grin_id, soybase, cannot_find, misc) %>%
-  summarize(total_funds = sum(total_funds, na.rm = T))
+  # this is creating the total average funds per variety -- if multiple inventor it will sum, if only one inventor is will remain the same (sum with itself)
+  summarize(total_avg_funds = sum(avg_funds, na.rm = T))
   
 
 # Join 2: Link awards + inventions to licenses/companies ----
@@ -84,7 +104,7 @@ df3 <- select(df2,
                size_range_sales,
                # And the award amount recieved by the breeders/inventors associated
                # Note that there names are removed now
-               total_funds
+               total_avg_funds
                 )
 write.csv(df3, "~/Box/lgu/data_clean/joined_inventions_licenses_awardstotal.csv",
           row.names = F)
