@@ -1,4 +1,9 @@
 ```{r}
+DT::datatable()
+```
+
+
+```{r}
 library(tidyverse)
 df3 <- read.csv("~/Box/lgu/data_clean/joined_inventions_licenses_awardstotal.csv")
 ```
@@ -15,6 +20,8 @@ Reverse engineer: get just each unique variety and their funding amount (funds a
 df2 <- df3 %>% 
   select(-c(licensee:size_range_sales)) %>% 
   unique()
+
+
 ```
 
 What are the total funds per each crop category?
@@ -33,5 +40,10 @@ df2 %>%
   group_by(crop_cat) %>% 
   summarize(avg_funds_per_crop = mean(total_funds, na.rm = T)) %>% 
   arrange(-avg_funds_per_crop)
+```
+
+
+```{r}
+dft <- read.csv("~/Box/lgu/data_clean/joined_inventions_licenses_awards_timeperiod.csv")
 ```
 

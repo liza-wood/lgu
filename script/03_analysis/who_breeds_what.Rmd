@@ -1,36 +1,157 @@
 ---
 title: "Who breeds what?"
-subtitle: "Plant variety innovation at LGU Agricultural Colleges, 1980-2020"
-author: ""
+subtitle: "Plant variety innovation at LGU Agricultural Colleges, 1973-2020"
+author: "Liza Wood, Adam J. Vera, Victoria Fletcher"
 date: "`r Sys.Date()`"
 output: html_document
 ---
 
-```{r}
+```{r setup, include = F}
 ##### SET THIS! #####
 path_to_box <- '~/Box/lgu/'
 library(tidyverse)
-```
-
-```{r setup, include = F}
-knitr::opts_chunk$set(echo = T, warning = F, message = F, results = F)
+knitr::opts_chunk$set(echo = F, warning = F, message = F, results = F)
 knitr::opts_knit$set(root.dir = path_to_box)
 ```
 
 ```{r}
 setwd(path_to_box)
 pvp <- read.csv("data_clean/pvpo_lgu.csv") %>% mutate(id = as.character(id)) %>% 
-  mutate(ip_type = "pvp")
+  filter(Certificate.Status != "Application Pending") %>% 
+  mutate(ip_type = "pvp") %>% 
+  select(c(1:3,7,11,17,18,20:23,28:32))
 pto <- read.csv("data_clean/uspto_lgus.csv") %>% 
-  mutate(ip_type = "pto")
+  mutate(ip_type = "pto") %>% 
+  select(c(1,2,9,15:17,19:22,27:30))
 allip <- full_join(pvp, pto) %>% 
-  filter(issue_year >= 1980 & issue_year <= 2020)
+  filter(issue_year <= 2020)
 ```
 
+## Introduction 
+
+This page summarizes plant breeding activities at US Land Grant Universities (LGUs) for as far back as Patent and Trademark Office (PTO) and Plant Variety Protection (PVP) records are electronically available (true?), from 1973 to 2020. We identify the types of crops that universities are developing and protecting through these methods, namely cereals, ornamental, and fruits and nuts. The number of varieties being registered differs across LGU states, with certain states being more active than others (e.g. California, Georgia, New Jersey, and Texas). We observe a steady increase in overall development and protection of plant varieties through both PVP and PTO avenues. Results regarding the qualities of the crops that universities are developing/protecting are forthcoming.  
+
+Data for these summaries are drawn from the the USPTO and PVP databases, refined to include only protections from the 50 1862 LGUs. This meant looking for PVP applications with Universities as Applicants. For USPTO, this meant looking for Plant Patents and Utility Patents with plant names where LGUs were Assignees, as well as Agricultural Research Centers and State applications that were observed in the licensing agreements.
+
+## What plant material have LGUs been developing? 
 
 ```{r}
-setwd(path_to_box)
-innovations <- read.csv('data_clean/inventor_invention.csv')
-awards_for_breeder <- read.csv('data_clean/funds_df.csv')
+crop_table <- allip %>% 
+  group_by(crop_cat) %>% 
+  count() %>% 
+  arrange(desc(n)) %>% 
+  ungroup() %>% 
+  mutate(percent = paste0(round(100*n/sum(n)), "%"))
 ```
 
+The plant varieties developed by LGUs were categorized into one of 10 groupings designated by the [FAO Agricultural Census](https://www.fao.org/3/a0135e/A0135E10.htm#app3), in line with [Pardey et al. 2013](https://www.nature.com/articles/nbt.2467). By and large, cereals are the largest crop category being developed at LGUs, accounting for 31% of all varieties, followed by ornamental plants, fruits and nuts, and oilseeds. A summary of the crop groupings are as follows:  
+
+```{r ip crops, out.width = "80%", fig.align= "center", echo = F}
+## A plot over time, colored by crop type
+crop_table %>% 
+  mutate(crop_cat = factor(crop_cat, levels = .$crop_cat)) %>% 
+  ggplot(aes(x = crop_cat, y = n)) +
+  geom_bar(stat = "identity", fill = "#472D7BFF") +
+  stat_identity(geom = "text", colour = "white", size = 3,
+                aes(label = percent),
+                position=position_stack(vjust=0.5)) +
+  labs(x = "", y = "Count", title = "Plant protection by crop category",
+       subtitle = "Percent of all varieties in text") +
+  theme_linedraw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## How does plant variety development vary across the US?  
+
+```{r}
+state_table <- allip %>% 
+  filter(crop_cat != "Ornamental") %>% 
+  group_by(uni_state) %>% 
+  count() %>% 
+  arrange(desc(n))
+
+top_states <- filter(state_table, n>75)
+
+statecrop_table <- allip %>% 
+  filter(crop_cat != "Ornamental") %>% 
+  filter(uni_state %in% top_states$uni_state) %>% 
+  group_by(uni_state, crop_cat) %>% 
+  count()
+```
+
+We can further subdivide the data for based on state to identify different geographic hot spots of variety development. We omit ornamental crops from this and future analyses to zero in on agricultural plant variety development. We find that the most active LGUs (top 10) for crop variety development are: `r top_states$uni_state`. The range of crops protected from these top-10 state institutions ranges from `r top_states$n[top_states$uni_state == "California"]` in California to `r top_states$n[top_states$uni_state == "Michigan"]` in Michigan, over the last 40+ years. 
+
+```{r ip crops by state, out.width = "100%", fig.align= "center", echo = F}
+allip %>% 
+  #filter(!is.na(uni_state)) %>% 
+  filter(crop_cat != "Ornamental") %>% 
+  ggplot(aes(x = issue_year)) +
+  geom_bar() +
+  #geom_text(tab, aes(x = x, label = n)) + 
+  labs(x = "Year", y = "Count", title = "Plant protections over time by state") +
+  theme_linedraw() +
+  facet_wrap(~uni_state, nrow = 6) +
+  coord_cartesian(ylim = c(0,25)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## How have LGUs been protecting their plant material?   
+
+```{r}
+ip_table <- allip %>% 
+  filter(crop_cat != "Ornamental") %>% 
+  group_by(ip_type, issue_year) %>% 
+  count() %>% 
+  ungroup() %>% 
+  group_by(issue_year) %>% 
+  mutate(prop = round(100*n/sum(n))) %>% 
+  ungroup() %>% 
+  mutate(decade = case_when(
+    issue_year %in% 2011:2020 ~ "2011-2020",
+    issue_year %in% 2001:2010 ~ "2001-2010",
+    issue_year %in% 1991:2000 ~ "1991-2000",
+    issue_year %in% 1981:1990 ~ "1981-1990",
+    T ~ "1980 and earlier"
+  )) %>% 
+  group_by(decade) %>% 
+  mutate(decade_total = sum(n)) %>% 
+  group_by(decade, ip_type) %>% 
+  mutate(decade_ip_total = sum(n),
+         decade_ip_prop = round(decade_ip_total/decade_total, 2))
+```
+
+
+LGUs have been protecting their plant material with both Plant and Utility Patents from the PTO and through PVPs, with slight preference for PVPs. Between 1973-2020 `r nrow(allip)` applications have been submitted by LGUs, `r nrow(pvp)` as PVP and `r nrow(pto)` as USPTO (`r nrow(pto[str_detect(pto$id, '^PP'),])` as plant patents and `r nrow(pto[!(str_detect(pto$id, '^PP')),])` as utility patents). There have a steady increase in both IP types over time, where the total number of patents over the decades increased from `r unique(ip_table$decade_total[ip_table$decade == "1981-1990"])` between 1981-1990, to `r unique(ip_table$decade_total[ip_table$decade == "1991-2000"])` between 1991-2000, `r unique(ip_table$decade_total[ip_table$decade == "2001-2010"])` between 2001-2010, and `r unique(ip_table$decade_total[ip_table$decade == "2011-2020"])` between 2011-2020. 
+
+Within these total increases, the proportion of protection types has slightly shifted, where the proportion of varieties being protected by the PTO, rather than via PVPs, has gone from  `r unique(ip_table$decade_ip_prop[ip_table$decade == "1981-1990" & ip_table$ip_type == "pto"])` between 1981-1990, to `r unique(ip_table$decade_ip_prop[ip_table$decade == "1991-2000" & ip_table$ip_type == "pto"])` between 1991-2000, `r unique(ip_table$decade_ip_prop[ip_table$decade == "2001-2010" & ip_table$ip_type == "pto"])` between 2001-2010, and `r unique(ip_table$decade_ip_prop[ip_table$decade == "2011-2020" & ip_table$ip_type == "pto"])` between 2011-2020. 
+
+```{r ip over time, out.width = "80%", fig.align= "center", echo = F}
+ip_table %>% 
+  mutate(ip_type = toupper(ip_type)) %>% 
+  ggplot(aes(x = issue_year, y = n,fill = ip_type)) +
+  geom_bar(stat = "identity") +
+  stat_identity(geom = "text", colour = "white", size = 2,
+                aes(label = prop),
+                position=position_stack(vjust=0.5)) +
+  labs(x = "Year", y = "Count", title = "Plant protection over time",
+       fill = "IP Type", subtitle = "Percent of IP Type in text") +
+  theme_linedraw() +
+  scale_fill_viridis_d(begin = .3, end = .6)
+```
+
+## Forthcoming: What qualities do these plants have?  
+
+Of the `r nrow(allip)` plant varieties that have been protected by PVPs or patents, we qualitatively coded a random subset of the plant descriptions (10%, `r nrow(allip)*.1`). Coding resulted in the identification of nine preliminary themes: physical/phenological traits (size, color, texture, flavor, scent), disease resistance, climate tolerance, seasonality, and non-traditional environments (e.g. marginal lands, organic). We used these `r nrow(allip)*.1` manual classifications to train a neural network to classify plant description text into these categories. 
+
+<!---
+```{r}
+# Summary forthcoming: Frequency of crop qualities
+```
+
+These categories vary across crop in the following ways:
+
+```{r}
+# Summary forthcoming: Crop quality x crop category
+```
+
+--->

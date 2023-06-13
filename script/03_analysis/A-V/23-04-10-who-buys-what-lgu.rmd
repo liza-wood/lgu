@@ -1,18 +1,14 @@
 ---
 title: "Who buys what?"
 subtitle: "Plant material licensing for LGU Agricultural Colleges, 1980-2020"
-author: Adam Vera
-date: "2023-05-11"
+author: Adam J. Vera
+date: "2023-06-05"
 output: html_document
 ---
 
-```{r, echo = F}
-##### SET THIS TO YOUR OWN PATH! #####
-path_to_box <- '~/../../Box/lgu/'
-```
-
 ```{r setup, include = F}
 library(tidyverse)
+path_to_box <- '~/../../Box/lgu/'
 knitr::opts_chunk$set(echo = T, warning = F, message = F, results = T)
 knitr::opts_knit$set(root.dir = path_to_box)
 ```
@@ -41,7 +37,7 @@ This report analyzes agricultural product licenses from land grant universities 
 colnames(licenses)
 ```
 
-## License data frame column names and descriptions:
+## License data frame column names and descriptions
 
   1) X: Row Number
   2) crop_name_common: common name of each crop
@@ -130,9 +126,17 @@ licenses %>%
   group_by(fao_class1, uni_state) %>%
   count() %>%
   arrange(-n)
+
+licenses_cereals <- licenses %>% 
+  filter(fao_class1 == "cereals", !is.na(fao_class1))
+
+licenses_cereals %>%
+  group_by(crop_name_common) %>%
+  count() %>%
+  arrange(-n)
 ```
 
-The crop licensed the most of all FAO classes is cereals, making up 3232 of the 7028  licenses. Washington dominates the cereal market at 2122 licenses, licensing 65.7% (2122/3232) of cereals. With this code, the percentage of any crop in any state out of all available license data can be calculated.
+The crop licensed the most of all FAO classes is cereals, making up 46.0% (3234/7028) of licenses. Cereals are comprised of primarily wheat (73.0%), barley (17.8%), and sorghum (3.0%).  Washington dominates the cereal market at 2122 licenses, licensing 65.6% (2122/3234) of cereals. The next largest producer of cereals is Oregon, at 15% (485/3234). With this code, the percentage of any crop in any state out of all available license data can be calculated.
 
 ```{r, echo=FALSE, eval=FALSE}
 licenses %>%
@@ -168,10 +172,11 @@ licenses_ca %>%
 
 ```{r, echo=FALSE}
 colnames(companies)[2] <- "dnb_name"
+companies <- companies[-c(10)]
 colnames(companies)
 ```
 
-## Column data frame column names and descriptions:
+## Column data frame column names and descriptions
 
   1) X: row number
   2) dnb_name: company name (from dnb)
@@ -182,34 +187,33 @@ colnames(companies)
   7) industry: type of business
   8) currency: currency used by business and of assets
   9) assets: wealth
-  10) duns: ?
-  11) address: business address
-  12) naics2017: North American Industry Classification System
-  13) yr_founded: year founded
-  14) incorp_location: Additional location
-  15) local_employee_number: number of employees at business location on license
-  16) total_employee_number: vs global?
-  17) global_employee_number: vs total?
-  18) local_sales_number: gross income of business at location on license
-  19) global_sales_number: total gross income of company
-  20) db_type: ?
-  21) licensee: official name from master company list on licenses spreadsheet (used for joining)
-  22) zipcode: zip code
-  23) lat: latitude coordinate of company location
-  24) long: longitude coordinate of company location
-  25) country: country of company HQ location
-  26) state: US state of HQ
-  27) domestic: logical to determine if international or not; TRUE means US based
-  28) licensee_type: company or other
-  29) intermediate_employee_number: irrelevant column for calculations only
-  30) highest_employee_number: largest available data points for company employee number
-  31) highest_sales_number: largest available data points for company sales money
-  32) size_range_sales: determination of company size based on sales number
-  33) size_range_employee: determination of company size based on employee number
+  10) address: business address
+  11) naics2017: North American Industry Classification System
+  12) yr_founded: year founded
+  13) incorp_location: Additional location
+  14) local_employee_number: number of employees at business location on license
+  15) total_employee_number: domestic employee number
+  16) global_employee_number: international employee number
+  17) local_sales_number: gross income of business at location on license
+  18) global_sales_number: total gross income of company
+  19) db_type: database name
+  20) licensee: official name from master company list on licenses spreadsheet (used for joining)
+  21) zipcode: zip code
+  22) lat: latitude coordinate of company location
+  23) long: longitude coordinate of company location
+  24) country: country of company HQ location
+  25) state: US state of HQ
+  26) domestic: logical to determine if international or not; TRUE means US based
+  27) licensee_type: company or other
+  28) intermediate_employee_number: irrelevant column for calculations only
+  29) highest_employee_number: largest available data points for company employee number
+  30) highest_sales_number: largest available data points for company sales money
+  31) size_range_sales: determination of company size based on sales number
+  32) size_range_employee: determination of company size based on employee number
   
 ## Companies vs licensees
 
-Two data frames are joined for this report: Companies and Licenses. Licenses describe the agreement between universities and companies, while the Companies include information regarding the companies themselves. The unique number of licensees in the licenses data frame is larger than the number of companies in the companies data frame. This suggests that not all licensees are documented by the companies database used in this report.
+Two data frames are joined for this report: Companies and Licenses. Licenses describe the agreement between universities and companies, while the Companies include information regarding the companies themselves. The unique number of licensees in the licenses data frame is larger than the number of companies in the companies data frame. This suggests that not all licensees are documented by the companies database used in this report. This is because some licensees are listed as individuals and various associations that are not considered to be companies.
 
 <!--- * Compare this number to the number of _unique_ companies in the licensing data (Hint: you need to reduce the number of rows in the licensing data so that you only have unique licensee 'names' or the type == company). --->
 ```{r}
@@ -263,11 +267,7 @@ companies <- companies %>%
 companies %>%
   group_by(size_range_employee) %>%
   count() %>%
-  arrange(-n) 
-  
-companies %>%
-  group_by(size_range_employee) %>%
-  summarize(mean(highest_sales_number, na.rm = TRUE))
+  arrange(-n)
 ```
 
 A single column with the highest sales number available per company was created in order to compare companies by their total sales, rather than just one branch or region. This data can be used to categorize companies into small and large based on their annual sales. The U.S. Small Business Administration determines what is a small business based on its industry. The average annual sales for the farming industry to be considered a small business is less than 3 million dollars. With this value as a division between small and large companies, the average small company makes 684K dollars	annually while that of large companies are 6.6B.
@@ -313,21 +313,24 @@ licenses_joined %>%
 licenses_joined_NA_sales <- licenses_joined %>%
   filter(!is.na(size_range_sales))
 
-licenses_joined_NA_sales %>% 
-  group_by(top_uni, size_range_sales) %>% 
-  count() %>% 
-  ungroup() %>% 
-  group_by(top_uni) %>% 
-  mutate(percent = n/sum(n)) %>% 
-  ggplot(aes(x = top_uni, y = n,  fill = size_range_sales)) + 
+geom_col1 <- licenses_joined_NA_sales %>%
+  group_by(top_uni, size_range_sales) %>%
+  count() %>%
+  ungroup() %>%
+  group_by(top_uni) %>%
+  mutate(percent = n/sum(n)) %>%
+  as.data.frame()
+
+ggplot(geom_col1, aes(x = top_uni, y = percent, fill = size_range_sales)) + 
   geom_col() +
-  geom_text(aes(label = percent, y = n)) +
   theme(axis.text.x = element_text(angle=70, vjust=0.5)) +
   scale_fill_viridis_d(option = "C") +
   labs(title = "Size of Companies in Licenses per University",
-       x = "University", y = "License Count", fill = "Company Size") +
+    x = "University", y = "Percentage", fill = "Company Size") +
   theme_classic()
 ```
+
+The percentage of small versus large companies that are licensees per university is almost identical across the top five universities and others. Small companies make up about 58% of the licensees for the selected states, with Washington sitting at 62% and the other universities at 50%. With the exception of Washington, the other four top universities differ by less than 1% in the percentage of the split between small and large companies. 
 
 ## Company size per crop
 
@@ -360,7 +363,7 @@ ggplot(licenses_joined_large_NA_fao_class1, aes(x = top_uni, fill = fao_class1))
   theme_classic()
 ```
 
-In conclusion, this analysis report allows for specific university action to be investigated further. Large companies play a role in the movement of grant money at land grant universities.
+There is no significant change in the crops that large companies license versus companies overall (small and large combined). In conclusion, this analysis report allows for specific university action to be investigated further. Large companies play a role in the movement of grant money at land grant universities.
 
 ```{r, echo=FALSE, eval=FALSE}
 licenses_joined %>%
@@ -438,11 +441,5 @@ companies %>%
 
 # licenses_joined <- left_join(licenses, companies, by = c("licensee"="official_name"))
   ## if ever wanted to join dfs by different column names
-```
-
-** Liza added **
-
-```{r}
-write.csv(licenses_joined, "data_clean/licenses_joined.csv", row.names = F)
 ```
 

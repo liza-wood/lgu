@@ -44,9 +44,9 @@ for(i in 1:nrow(df)){
   }
 }
 
-# Manual IDs
+# Manually ID the crop common names
 df$crop_name_common[df$WKU == "PP0056529"] <- "Asparagus"
-df$crop_name_common[str_detect(df$Title, "[Gg]rass ‘Tift")] <- "Fountaingrasses"
+df$crop_name_common[str_detect(df$Title, "[Gg]rass (named)? ‘Tift")] <- "Fountaingrasses"
 df$crop_name_common[df$WKU == "PP028194"] <- "Little bluestem"
 df$crop_name_common[df$WKU == "PP028193"] <- "Little bluestem"
 df$crop_name_common[df$WKU == "PP028033"] <- "Little bluestem"
@@ -56,6 +56,8 @@ df$crop_name_common[df$WKU == "PP029844"] <- "Beach evening primrose"
 df$crop_name_common[df$WKU == "PP0069760"] <- "Peach"
 df$crop_name_common[df$WKU == "PP0069124"] <- "Peach"
 df$crop_name_common[df$WKU == "PP0075345"] <- "Forsythia"
+df$crop_name_common[str_detect(df$Title, "Barberry")] <- "Japanese barberry"
+# Need to add Hop and Nandina to the crop list
 
 checking_pp <- filter(df, crop_name_common == "" & str_detect(WKU, "^PP"))
 checking_up <- filter(df, crop_name_common == "" & !(str_detect(WKU, "^PP")))
@@ -92,7 +94,8 @@ mistakes <- paste(c("University of Minnestoa", "University of Akransas",
                     "University of Georgiea", "North Carollna State University",
                     "North Carolina State Univ\\. at Raleigh",
                     "Regents of the University of Minn\\.",
-                    "Rutger", "Regents U\\.C\\."), collapse = "|")
+                    "Rutger", "Regents U\\.C\\.",
+                    "Universtiy of Massachusetts"), collapse = "|")
 lgu_pattern <- paste(lgu_pattern, mistakes, sep = "|")
 lgu_pattern <- str_replace_all(lgu_pattern, "\\bof\\b", "[Oo]f")
 lgu_pattern <- tolower(lgu_pattern)
@@ -101,8 +104,9 @@ for(i in 1:nrow(df_plants)){
   df_plants$university[i] <- str_extract(tolower(trimws(df_plants$Assignee[i])), lgu_pattern)
 }
 
-unique(df_plants$Assignee[is.na(df_plants$university)])
+table(df_plants$university)
 
+# Manually correct the mistakes
 df_plants <- df_plants %>% 
   mutate(university = case_when(
     university %in% c("university of minnestoa",
@@ -112,6 +116,7 @@ df_plants <- df_plants %>%
                       "university of akranas") ~ "university of arkansas",
     university == "texas a & m university" ~ "texas a&m",
     university == "university of tennesse"~ "university of tennessee",
+    university == "universtiy of massachusetts"~ "university of massachusetts",
     university %in% c("university of ga",
                       "university of georgiea") ~ "university of georgia",
     university %in% c("north carollna state university",
@@ -122,6 +127,10 @@ df_plants <- df_plants %>%
   ))
 
 table(df_plants$university)
+
+# These are the assignees that I couldn't ID a university for
+# Do I change up NC ARS or Cornell Foundation?
+unique(df_plants$Assignee[is.na(df_plants$university)])
 
 states <- uni_names %>% 
   mutate(university = tolower(uni_name))

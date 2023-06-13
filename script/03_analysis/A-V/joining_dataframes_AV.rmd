@@ -1,0 +1,246 @@
+---
+title: "Joining Dataframes"
+author: "Adam Vera"
+date: "2023-06-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+
+# Merge all of the data sets ----
+# Victoria's join: This is the inventors we have on our list as plant breeders, and all of the awards they've ever gotten. This is interesting on its own and hasn't been explore yet
+# Helps us understand the trend in breeder funding: Where does the money come from?
+inv_award <- read.csv("~/../../Box/lgu/data_clean/inventor_awards.csv")
+# Adam's join: The relationship between licenses and the companies that buy those liceses
+lic_co <- read.csv("~/../../Box/lgu/data_clean/licenses_joined.csv")
+# Liza's join: Right now just the relationship between plants and inventors -- not that interesting until I get further details about the plants
+inv_lic <- read.csv('~/../../Box/lgu/data_clean/inventor_invention.csv')
+```
+
+```{r}
+## Naming notes -----
+# inv = inventor (could be pi but called awards recievers PIs which we didnt like)
+# lic = license (/inventions)
+# award = award
+# co = company
+
+# Filtering to pilot states ----
+# Reducing the number of the license data frames down to only the 'pilot' data for the states that we currently have clean award data for (I have about twice as much data but it is not clean still)
+# Look at the states repped in each data
+table(inv_award$uni_state)
+table(lic_co$uni_state)
+table(inv_lic$uni_state)
+# Reduce down the our limiting award pilot data
+states <- unique(inv_award$uni_state)
+states
+# Does not match with who Adam identifies as "top", but it is a start!
+lic_co <- filter(lic_co, uni_state %in% states)
+inv_lic <- filter(inv_lic, uni_state %in% states)
+```
+
+## Join 1
+```{r}
+# Join 1: Link awards to inventions ----
+colnames(inv_award)
+colnames(inv_lic)
+
+colnames(inv_lic)[16] <- "inventor_lastname"
+colnames(inv_lic)[18] <- "inventor_first_initial"
+
+# This is super 'long' because it takes every award any inventor has ever gotten, and associates it with every plant they've ever bred. Cleaning and playing with time frames here is defnitely something of interest for the future
+inventor_allmoney <- left_join(inv_lic, inv_award)
+
+
+# Example
+# How many varieties has Shaw developed?
+shaw_varieties <- filter(inv_lic, inventor_lastname == "Shaw")
+shaw_awards <- filter(inv_award, inventor_lastname == "Shaw")
+shaw_varieties_licenses <- filter(lic_co, variety_name %in% shaw_varieties$variety_name)
+
+# But as an intermediate step, we can sum up all the money per inventor so that our join doesnt blow up
+inv_award_total <- inv_award %>% 
+  group_by(uni_state, inventor_lastname, inventor_first_initial) %>% 
+  summarize(total_funds = sum(amt, na.rm = T))
+
+# We want to get a count of the inventions each inventor has created
+
+inventor_counts <- inv_lic %>% 
+  group_by(uni_state, inventor_lastname, inventor_first_initial) %>% 
+  count()
+
+df.5 <- left_join(inv_award_total, inventor_counts)
+
+# Average award amount divded by the number of varieties they've licensed
+df.5$avg_funds <- df.5$total_funds/df.5$n
+
+df1 <- left_join(inv_lic, df.5)
+
+# Now, we have many inventors per variety, but mainly we want to associate a sum of money with the variety now. SO we can cut inventor out, in a way, and just get one value per variety
+
+df1_reduced <- df1 %>% 
+  # remove is old award values -- total_funds, n
+  select(-c(total_funds, n)) %>% 
+  # group by everything but inventor info, which should be equivalent to each invention
+  group_by(uni_state, crop_name_common, variety_name, invention_url, 
+           year_filed, ip_type, notes, other_links, pvp_id, pto_id, 
+           grin_id, soybase, cannot_find, misc) %>%
+  # this is creating the total average funds per variety -- if multiple inventor it will sum, if only one inventor is will remain the same (sum with itself)
+  summarize(total_avg_funds = sum(avg_funds, na.rm = T))
+```
+
+## Join 2
+```{r}
+# Join 2: Link awards + inventions to licenses/companies ----
+
+# The thing linking them is the plant, so the variety name
+colnames(df1_reduced)
+colnames(lic_co)
+
+# We want licenses on the left because we'll keep licenses we don't have inventor data for
+df2 <- left_join(lic_co, df1_reduced)
+# So now the NA values in the total_funds column means we don't have any data for those
+
+# Selection columns ----
+# Okay, do we really need all of these columns? Let's reduce just a little
+colnames(df2)
+
+# So remember here each row represents a license -- so a purchase between a university's variety and a company/other.
+df3 <- select(df2, 
+               # First select license data
+               uni_state, crop_name_common, variety_name,
+               fao_class1, ornamental, crop_cat,
+               # Also additional data about the IP of that crop
+               ip_type, year_filed, 
+               # Then info about the company that bought it
+               licensee, dnb_name, agreement_type, effective_date, end_date,
+               company_type, yr_founded, country, state, domestic, licensee_type,
+               highest_employee_number, highest_sales_number, size_range_employee,
+               size_range_sales,
+               # And the award amount recieved by the breeders/inventors associated
+               # Note that there names are removed now
+               total_avg_funds
+                )
+write.csv(df3, "~/../../Box/lgu/data_clean/joined_inventions_licenses_awardstotal.csv",
+          row.names = F)
+```
+
+## Exploring Join
+```{r}
+df3 <- read.csv("~/../../Box/lgu/data_clean/joined_inventions_licenses_awardstotal.csv")
+```
+
+* Note: Is the sum the best thing to do in the join to account for time? (DO THIS)
+
+<!--- Summing average inventor funds assigns a value to each variety based on the total amount of funds the inventor received in their career. Funds are averaged over the number of projects they worked on. The variety value is the total funds from every inventor that worked on that specific variety.--->
+* Is there a relationship between company size and 'awards money in' to different varieties?  
+```{r, eval=FALSE}
+df3 %>%
+  select(size_range_sales, total_avg_funds) %>%
+  group_by(size_range_sales, total_avg_funds) %>%
+  filter(!is.na(size_range_sales), !is.na(total_avg_funds)) %>%
+  unique() %>%
+  arrange(total_avg_funds)
+
+# Added by Adam: this was my first attempt that was corrected by Liza to become the chunk below
+```
+
+```{r}
+df3 %>%
+  select(size_range_sales, total_avg_funds) %>%
+  group_by(size_range_sales) %>%
+  filter(!is.na(size_range_sales), !is.na(total_avg_funds)) %>%
+  summarize(mean = mean(total_avg_funds), max=max(total_avg_funds), min=min(total_avg_funds), sd=sd(total_avg_funds))
+
+# Added by Adam: there was very large standard deviations that prove the means to be statistically insignificant at the moment.
+```
+
+* Is there a relationship between license type (Exclusive vs not) and 'awards money in' to different varieties?  
+  * If the crop is sold non-exclusively, how many licensees are there? Can we get a sense of how much money in is then 'redistributed' (broad sense) back into licensees? 
+
+```{r}
+df3 %>%
+  select(agreement_type, total_avg_funds) %>%
+  group_by(agreement_type, total_avg_funds) %>%
+  count() %>%
+  filter(total_avg_funds != "0", !is.na(agreement_type)) %>%
+  arrange(total_avg_funds)
+
+df3 %>%
+  group_by(agreement_type) %>%
+  count()
+
+# Added by Adam: Unless an inventor only produces varieties that are exclusive, averaging their funds takes away potential weight given to varieties sold exclusively. This disallows us to know whether an exclusively licensed variety was funded more.
+```
+
+```{r}
+df3_nonexcl <- df3 %>%
+  filter(agreement_type == "Non-exclusive license") %>%
+  group_by(variety_name) %>%
+  count()
+
+df3 %>%
+  filter(agreement_type == "Non-exclusive license") %>%
+  mutate(total_avg_funds_per_nonexcl_license <- total_avg_funds / df3_nonexcl$n)
+
+
+# Added by Adam: I want to isolate non-exclusive licenses, count the number of non-exclusive licenses per variety, and divide the total_avg_sales for each variety by the number of non-exclusive licenses.
+```
+
+
+Reverse engineer: get just each unique variety and their funding amount (funds associated with breeder) -- need to remove the company info, since that is the duplicate
+
+```{r}
+df2 <- df3 %>% 
+  select(-c(licensee:size_range_sales)) %>% 
+  unique()
+```
+
+What are the total funds per each crop category?
+
+```{r}
+df2 %>% 
+  group_by(crop_cat) %>% 
+  summarize(funds_per_crop = sum(total_avg_funds, na.rm = T)) %>% 
+  arrange(-funds_per_crop)
+```
+
+What about average?
+
+```{r}
+df2 %>% 
+  group_by(crop_cat) %>% 
+  summarize(avg_funds_per_crop = mean(total_avg_funds, na.rm = T)) %>% 
+  arrange(-avg_funds_per_crop)
+
+# Added by Adam: I think that this is a better representation of crop worth.
+```
+
+```{r}
+# Added by Adam: does funding increase temporally, on average per license?
+
+years <-  as.Date(df3$effective_date, '%Y-%m-%d')
+
+effective_year <- as.numeric(format((as.Date(df3$effective_date, '%Y-%m-%d')),'%Y'))
+
+df3 <- df3 %>%
+  mutate(effective_year = as.numeric(format((as.Date(effective_date, '%Y-%m-%d')),'%Y')))
+
+df3 <- df3 %>%
+  filter(effective_year < 2021) %>%
+  mutate(year_range = case_when(effective_year > 2015 ~ "2016-2020", effective_year > 2010 ~ "2011-2015", effective_year > 2005 ~ "2006-2010", effective_year > 2000 ~ "2001-2005", effective_year > 1995 ~ "1996-2000", TRUE ~ "Older"))
+
+df3 %>%
+  select(year_range, total_avg_funds) %>%
+  group_by(year_range) %>%
+  filter(!is.na(year_range), !is.na(total_avg_funds)) %>%
+  summarize(mean = mean(total_avg_funds), max=max(total_avg_funds), min=min(total_avg_funds), sd=sd(total_avg_funds))
+
+# I believe this is a start, but I want to then divide the mean total_avg_funds by the number of licenses in each year range to determine the average value of licenses per year range. This could be broken down further by crop type. We could also adjust for inflation if need be.
+
+```
+
