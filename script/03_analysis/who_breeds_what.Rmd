@@ -10,7 +10,7 @@ output: html_document
 ##### SET THIS! #####
 path_to_box <- '~/Box/lgu/'
 library(tidyverse)
-knitr::opts_chunk$set(echo = F, warning = F, message = F, results = F)
+knitr::opts_chunk$set(echo = F, warning = F, message = F, results = F, fig.align = 'center')
 knitr::opts_knit$set(root.dir = path_to_box)
 ```
 
@@ -29,9 +29,15 @@ allip <- full_join(pvp, pto) %>%
 
 ## Introduction 
 
-This page summarizes plant breeding activities at US Land Grant Universities (LGUs) for as far back as Patent and Trademark Office (PTO) and Plant Variety Protection (PVP) records are electronically available (true?), from 1973 to 2020. We identify the types of crops that universities are developing and protecting through these methods, namely cereals, ornamental, and fruits and nuts. The number of varieties being registered differs across LGU states, with certain states being more active than others (e.g. California, Georgia, New Jersey, and Texas). We observe a steady increase in overall development and protection of plant varieties through both PVP and PTO avenues. Results regarding the qualities of the crops that universities are developing/protecting are forthcoming.  
+Plant breeding has long been an important role of public research, particularly at US Land Grant Universities (LGUs), to support the agricultural development and meet the (pre-competitive) needs of growers in the state. This page summarizes plant breeding activities at LGUs for as far back as Patent and Trademark Office (PTO) and Plant Variety Protection (PVP) records are electronically available, from 1973 to 2020. We identify the types of crops that universities are developing and protecting through these methods, and how the number of varieties being registered differs across LGU states and over time. Results regarding the qualities of the crops that universities are developing/protecting are forthcoming.  
 
-Data for these summaries are drawn from the the USPTO and PVP databases, refined to include only protections from the 50 1862 LGUs. This meant looking for PVP applications with Universities as Applicants. For USPTO, this meant looking for Plant Patents and Utility Patents with plant names where LGUs were Assignees, as well as Agricultural Research Centers and State applications that were observed in the licensing agreements.
+Key take-aways are as follows: 
+* LGUs are most active in breeding cereals, ornamental, and fruits and nuts above other crop types (e.g. legumes, roots, vegetables)  
+* Certain states are more active than others in their breeding and protecting: California, Georgia, New Jersey, and Texas have the most prolific breeding programs  
+* There has been a steady increase in overall development and protection of plant varieties through both PVP and PTO protections  
+
+
+Data for these summaries are drawn from the the USPTO and PVP databases, refined to include only protections from the 50 1862 LGUs. We find a total of `r nrow(allip)` This meant looking for PVP applications with Universities as Applicants. For USPTO, this meant looking for Plant Patents and Utility Patents with plant names where LGUs were Assignees, as well as Agricultural Research Centers and State applications that were observed in the licensing agreements.
 
 ## What plant material have LGUs been developing? 
 
@@ -137,6 +143,23 @@ ip_table %>%
        fill = "IP Type", subtitle = "Percent of IP Type in text") +
   theme_linedraw() +
   scale_fill_viridis_d(begin = .3, end = .6)
+```
+
+## Case study: University of California, Davis  
+
+University of California, Davis is the home institution of our research team, and is also among the most active universities in plant protection. Therefore, we take particular interest in California as a case study. Below, we see that California primarily produces fruits, nuts, and a few cereals and roots. 
+
+```{r, results = T}
+ca_ip <- allip %>% 
+  filter(crop_cat != "Ornamental", uni_state == "California")
+
+cacrop_table <- ca_ip %>%
+  group_by(crop_name_common) %>%
+  count() %>%
+  arrange(-n)
+
+DT::datatable(cacrop_table, colnames = c("Crop type",
+                           "Count of protected varieties"), rownames = F)
 ```
 
 ## Forthcoming: What qualities do these plants have?  
