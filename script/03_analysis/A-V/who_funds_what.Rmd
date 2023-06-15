@@ -84,8 +84,24 @@ At this point in time, some of the columns are irrelevant and thus may cause con
 ```{r}
 # Use select to reduce the number of columns
 all_awards_revised <- all_awards %>% 
-  select(uni_state,inventor_lastname,inventor_first,inventorlist_check,Sponsor,amt,ProjectTitle,PIFullName,Dept,start_year,inventor_firstname,end_year) %>% 
-  filter(amt>0)
+  select(uni_state,inventor_lastname,inventor_first,inventorlist_check,Sponsor,amt,ProjectTitle,PIFullName,Dept,start_year,inventor_firstname,end_year)
+
+grp_cols <- colnames(all_awards_revised)[-6]
+# Liza's addition -- we want to know the sum total for the project
+# This sums up the funding per year and subtracts the money that was negative,
+# which I learned from the group means that it was actually reduced
+all_awards_revised <- all_awards_revised %>% 
+  group_by(uni_state, inventor_lastname, inventor_first,
+           inventorlist_check, #Sponsor, removign sponsor because sometimes (Sandoval)
+                                # has same sponsor 
+           ProjectTitle,
+           PIFullName, end_year, #Dept, exlcuding dept and endyear because some have dual appointments
+           start_year, inventor_firstname) %>% 
+  filter(ProjectTitle != "Feed the Future Innovation Lab for Collaborative Research on Horticulture (Horticulture Innovation Lab)") %>% 
+  summarize(amt = sum(amt,na.rm = T)) %>% 
+  # then removing negative which would mean something weird but need to spend time with it
+  filter(amt >=0)
+
 ```
 
 ```{r, echo = F}
@@ -94,12 +110,13 @@ colnames(all_awards_revised)
 
 ## Awards Data Summaries
 
-Across all of the grants in our awards data, what is the average amount of funding a project receives?
+Across all of the grants in our awards data, what is the average amount of funding a project receives
 
 -   Using the summary function and looking into the "awd" data column we can find the average amount of funding a projected received.
 
 ```{r}
 summary(all_awards_revised$amt)
+summary(all_awards_revised2$amt)
 ```
 
 Does this amount vary across universities? How much money has each university gotten each year?
@@ -268,7 +285,7 @@ ggplot(all_awards_revised, aes(x = factor(year_range, level=c('Older', '1996-200
 -   Within UC Davis, how does funding vary across department? Is the data clean?
     -   UC Davis Exploration: Looking at mean award amounts across all the different departments at UC Davis it becomes apparent that this data is not very clean. There are repetitions in programs such as: "International Ag Program" and "International Ag Programs". Other departments such as "Phoenix" or "Metro Cluster" that are not clearly understood where these categories could fall into. As we do not have a clear understanding as to what these departments are/mean and how they should be categorized we will most likely avoid grouping by departments and cleaning this data.
 
-```{r}
+```{r, eval = F}
 all_awards_revised %>% 
   filter(uni_state == "California") %>% 
   group_by(Dept) %>% 
@@ -395,7 +412,7 @@ inventors_awards %>%
 
 # How many matches?
 inventors_awards %>% 
-  filter(!is.na(Sponsor)) %>% 
+  #filter(!is.na(Sponsor)) %>% 
   select(uni_state, inventor_lastname) %>% 
   unique() %>% 
   nrow()
