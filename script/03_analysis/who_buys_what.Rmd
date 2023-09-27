@@ -1,10 +1,10 @@
----
-title: "Who buys what?"
-subtitle: "Plant material licensing for LGU Agricultural Colleges, 2000-2020"
-author: "Adam J. Vera, Liza Wood, and Victoria Fletcher"
-date: "`r Sys.Date()`"
-output: html_document
----
+# Who buys what?  
+
+------
+A summary of plant material licensing for LGU Agricultural Colleges, 2000-2020  
+Authors: Adam Vera, Liza Wood, Victoria Fletcher  
+Date: `r Sys.Date()`
+------
 
 ```{r setup, include = F}
 library(tidyverse)
@@ -18,28 +18,20 @@ knitr::opts_knit$set(root.dir = path_to_box)
 setwd(path_to_box)
 licenses <- read.csv("data_clean/license_clean.csv")
 companies <- read.csv("data_clean/company_db_full_clean.csv")
+other_licensees <- read.csv("data_indices/other_licensee.csv")
 ```
 
-<!--- # Exploring the data
-
-For the first couple weeks, I'd like us to describe, analyze, and visualize the data we have for 'licenses' and 'companies'. The licenses data here is data requested from universities about the plant varieties they've licensing, and to whom. We matched these data to different companies, which are listed in the 'companies' data frame. Along with the company names are various company details from D&B, as well as a few attributes generated. 
-
-Below I will provide an outline of general goals for describing, analyzing, and visualizing the data, but feel free to add your own questions/answers. Please use this script as a place to take notes on your process, identify places that you're stuck, or have questions about the data. Insert code chunks under each prompt to answer the questions and organize the Rmd that way.  
-
-## Describe the licensing data  
-
-1. What are the columns in our licensing data? Write out some 'data documentation' by making a list of all the columns and writing our short descriptions of each of them (we've kind of done this already in practice). These will help you and your collaborators know what they're looking at when they first access the data. If there are any irrelevant columns, remove them with the select function. --->
 
 ## Introduction  
 
-US Land Grant Universities (LGUs) are an important contributor to public plant breeding. Universities develop different plant material and varieties and then (increasingly) _license_ the plant material they develop to third parties to commercialize and/or continue to innovation. This report analyzes plant variety licenses between LGUs and the companies that purchase these products. This analysis explores the role specific universities have in this market, the breakdown of crops licensed by university, and the financial profile of the companies that purchase the licenses from LGUs. 
+US Land Grant Universities (LGUs) are an important contributor to public plant breeding. Universities develop different plant material and varieties and then (increasingly) _license_ the plant material they develop to third parties to commercialize and/or continue to innovation. This report summarizes plant variety licenses between LGUs and the companies that purchase these products. This analysis explores the role specific universities have in this market, the breakdown of crops licensed by university, and the financial profile of the companies that purchase the licenses from LGUs. 
 
-We base this report on data collected via public records requests. These records include licensing agreement data (what material is being licensed and to whom) between 2000-2020 for 25 LGUs. We requested data from all 50 states, but only recieved data from half due to public records requests denials or prohibitive costs. 
+We base this report on data collected via public records requests. These records include licensing agreement data (what material is being licensed and to whom) between 2000-2020 for 25 LGUs (`r paste(unique(licenses$uni_state), collapse = ", ")`. We requested data from all 50 states, but only received data from half due to public records requests denials or prohibitive costs. 
 
-A summary look at these data include the following features:  
+Key take-aways are as follows:  
 
 * `r nrow(licenses)` licensing agreements across `r length(unique(licenses$uni_state))` Land Grant Universities between 2000-2020  
-* Agreements are with `r length(unique(licenses$licensee[licenses$licensee_type == "company"]))` companies and `r length(unique(licenses$licensee[licenses$licensee_type == "other"]))` other entities (organizations, universities, individuals, etc.)  
+* Agreements are with `r length(unique(companies$licensee[companies$licensee_type == "company"]))` companies and `r length(unique(other_licensees$official_name))` other entities (organizations, universities, individuals, etc.)  
 * `r length(unique(licenses$variety_name))` unique plant varieties and/or breeding lines are licensed
 
 ## What crops are being licensed? 
@@ -73,7 +65,7 @@ colnames(licenses)
     
 We categorize the crops LGUs are developing into one of 10 groupings designated by the [FAO Agricultural Census](https://www.fao.org/3/a0135e/A0135E10.htm#app3), and we can summarize these crop types across different universities in our data. Note that we remove ornamental plants from this analysis to focus in only on food and cash crops.  
 
-The crops most often licensed resemble the general trend of what we see in LGU plant variety development protection: cereals, fruits and nuts, and oilseeds. The crop licensed the most of all crop categories is cereals, making up 46% of licenses. The next most popular categories are Fruits and nuts (17%) and Oilseeds (16%). Cereals in our licensing data are comprised of primarily wheat (73%), with barley a far second (18%), the remaining nine crops in the cereal category leaving a long tail (e.g. sorghum, oat, corn, rice, millet, teff).
+The crops most often licensed resemble the general trend of what we see in LGU plant variety development protection: cereals, fruits and nuts, and oilseeds. The crop licensed the most of all crop categories is cereals, making up 46% of licenses. The next most popular categories are fruits and nuts (17%) and oilseeds (16%). Cereals in our licensing data are comprised of primarily wheat (73%), with barley a far second (18%), the remaining nine crops in the cereal category leaving a long tail (e.g. sorghum, oat, corn, rice, millet, teff).
 
 <!----NAs values for FAO class mostly resemble ornamental crops and have been removed. This report is more focused on food and cash crops. -- worth realizing that NAs in the fao_class1 variable become ornamental in the crop_cat variable if ornamental varible = T--->
 
@@ -163,10 +155,10 @@ licenses %>%
 
 ## How has licensing changed over time? 
 
-We look at the date of the licensing agreements to understand trends in university licensing over time. Across the 25 universities, licensing has been steadily increasing, which aligns with the trends of plant variety innovation generally. 
+We look at the date of the licensing agreements to understand trends in university licensing over time. Across the 25 universities, licensing has been steadily increasing, which aligns with the trends of plant variety innovation generally (Section 1).
 
 
-```{r, fig.align= "center", echo = F}
+```{r, fig.align= "center", echo = F, out.width = "100%"}
 licenses %>% 
   group_by(effective_year) %>% 
   count() %>% 
@@ -175,8 +167,8 @@ licenses %>%
   stat_identity(geom = "text", colour = "white", size = 3,
                 aes(label = n),
                 position=position_stack(vjust=0.5)) +
-  labs(x = "Year", y = "Count", title = "Licenses over time") +
-  theme_linedraw()
+  labs(x = "", y = "Count", title = "Licenses over time") +
+  theme_minimal()
 ```
 
 ```{r, echo = F}
@@ -184,7 +176,7 @@ counts <- licenses %>% group_by(uni_state) %>% count()
 yrly_counts <- licenses %>% group_by(uni_state, effective_year) %>% count()
 ```
 
-The amount of licensing varies by state considerably. The number of licenses over the twenty year periods ranges from only `r min(counts$n)` in `r counts$uni_state[counts$n == min(counts$n)]` to `r max(counts$n)` in `r counts$uni_state[counts$n == max(counts$n)]`, with an annual average of `r round(mean(yrly_counts$n))` licenses. 
+The amount of licensing varies by state considerably. The number of licenses over the twenty year periods= ranges from only `r min(counts$n)` in `r counts$uni_state[counts$n == min(counts$n)]` to `r max(counts$n)` in `r counts$uni_state[counts$n == max(counts$n)]`, with an annual average of `r round(mean(yrly_counts$n))` licenses. 
     
 <!--- To accurately represent this, manipulations of the data frame is required to determine the effective year of the license as well as group licenses into five year periods.--->
 ```{r}
@@ -236,8 +228,8 @@ ggplot(licenses, aes(x = factor(year_range,
   theme(axis.text.x = element_text(angle=70, vjust=0.5)) +
   scale_fill_viridis_d(option = "D") +
   labs(title = "License count by university",
-       x = "Year Range", y = "License Count", fill = "Top University") +
-  theme_linedraw()
+       x = "Year Range", y = "License Count", fill = "University") +
+  theme_minimal()
 ```
 
 ## Who is licensing LGU plant material?  
@@ -291,7 +283,7 @@ colnames(companies)
 
 Our team has used the licensing records to build out a data base of companies and organizations who have licensed material from LGUs. We have relied on the D&B Hoovers data base for most of this company data, including information such as the location of company headquarters and their size, as measured by sales (2022) and total number of employees across their locations. 
 
-LGU plant material has been licensed to `r length(unique(companies$licensee[companies$licensee_type == "company"]))` companies and `r length(unique(companies$licensee[companies$licensee_type == "other"]))` public, non-profit, or individual licensees. The most active licensees are listed in the table below, all of whom have purchased over 30 licenses in the last 20 years. 
+LGU plant material has been licensed to `r length(unique(companies$licensee[companies$licensee_type == "company"]))` companies and `r length(unique(other_licensees$official_name))` public, non-profit, or individual licensees. The most active licensees are listed in the table below, all of whom have purchased over 30 licenses in the last 20 years. 
 
 
 <!--- * Compare this number to the number of _unique_ companies in the licensing data (Hint: you need to reduce the number of rows in the licensing data so that you only have unique licensee 'names' or the type == company). --->
@@ -399,6 +391,8 @@ licenses_joined %>%
 
 On average, universities seem to license slightly more to smaller companies, with large companies accounting for about a third of licenses. We evaluate the relationship between plant variety licenses and the types of companies that purchase those licenses. Of the 6,966 licenses that we can connect to companies, 35% are to large companies. The percentage of small versus large companies that are licensees per university is quite similar across all states. For example, 29% of Washington's licenses are to large companies, though this number slightly increases: 34% of Texas's, 36% of Oregon's, 37% or North Carolina's, 38% of Iowa's and 43% of Other university's licenses are to large companies.  
 
+DRAFT: Add in the percent of all companies that are large to identify if their licenzing activity is proportional to the number of companies. The result is large companies account for about 25% of companies but 30-40% of licenses, so they are slightly more active. 
+
 ```{r, eval = F}
 licenses_joined %>%
   filter(licensee_type == "company") %>% 
@@ -408,7 +402,7 @@ licenses_joined %>%
   mutate(percent = 100*n/sum(n)) 
 ```
 
-```{r}
+```{r, out.width = "100%"}
 geom_col1 <- licenses_joined %>%
   filter(licensee_type == "company") %>% 
   group_by(top_uni, size_range_sales) %>%
@@ -418,22 +412,22 @@ geom_col1 <- licenses_joined %>%
   mutate(percent = round(100*n/sum(n))) %>%
   as.data.frame()
 
-ggplot(geom_col1, aes(x = top_uni, y = percent, fill = size_range_sales)) + 
+ggplot(geom_col1, aes(x = top_uni, y = n, fill = size_range_sales)) + 
   geom_col() +
   geom_text(aes(label = paste0(percent, "%")), position=position_stack(vjust=0.5),
             size = 3, color = "white") + 
   theme(axis.text.x = element_text(angle=70, vjust=0.5)) +
   scale_fill_viridis_d(option = "D", end = .6) +
-  labs(title = "Size of Companies in Licenses per University",
-    x = "University", y = "Percentage", fill = "Company Size") +
-  theme_classic()
+  labs(title = "Size of companies licensed to per university",
+    x = "", y = "Count", fill = "Company Size") +
+  theme_minimal()
 ```
 
 ### Do certain crop categories trend towards small or large company clients?
 
 There does not appear to be a clear trend whereby large companies are licensing specific types of crops. Large companies account for 42% of oilseed licenses, between 31-36% of vegetable, fruit and nut, and cereal licenses, though only 11% of roots and tubers. 
 
-```{r}
+```{r, out.width = "100%"}
 # Decided that to focus in on the question, you want to really know about how size relates to crop. University doesn't have too much to do with it right now.
 licenses_joined %>% 
   filter(!is.na(size_range_sales),
@@ -457,8 +451,8 @@ licenses_joined %>%
   theme(axis.text.x = element_text(angle=70, vjust=0.5)) +
   scale_fill_viridis_d(option = "D", end = .6) +
   labs(title = "Crops licensed by company size",
-       x = "University", y = "License Count", fill = "Company Size") +
-  theme_classic() +
+       x = "", y = "Count", fill = "Company Size") +
+  theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
@@ -490,7 +484,6 @@ ggplot(licenses_joined_large_NA_fao_class1, aes(x = top_uni, fill = fao_class1))
   theme_classic()
 ```
 
-**STILL THINKING HERE**: In conclusion, this analysis report allows for specific university action to be investigated further. Large companies play a role in the movement of grant money at land grant universities.
 
 ```{r, echo=FALSE, eval=FALSE}
 licenses_joined %>%
@@ -569,9 +562,92 @@ companies %>%
 # licenses_joined <- left_join(licenses, companies, by = c("licensee"="official_name"))
   ## if ever wanted to join dfs by different column names
 ```
+## DRAFT: Variety licensing networks 
 
+The figures below display, by crop category, what operations are licensing material the most from LGUs. Circles are sized based on the number of license agreements made, and colored by the region in which the operation is based: West in dark purple, Northeast in dark blue, South in aqua, North Central in green, any companies outside of the US are in yellow, and non-companies in grey.  
+
+```{r, results = F, echo = F}
+df <- readRDS("~/Box/lgu/data_clean/df_final.RDS")
+colors9 <- RColorBrewer::brewer.pal(name = "Spectral", n = 9)
+library(igraph)
+library(ggraph)
+```
+
+```{r, results = F, echo = F}
+net_by_crop <- function(CROPCAT){
+edges <- df %>% 
+  filter(crop_cat == CROPCAT) %>% 
+  select(uni_state, licensee) %>% 
+  filter(!is.na(licensee)) %>% 
+  group_by(uni_state, licensee)# %>% 
+  #count() %>% 
+  #rename(weight = n)
+nodes_uni <- df %>% 
+  select(uni_state, uni_region) %>% 
+  unique() %>% 
+  rename(node = uni_state, region = uni_region) %>% 
+  mutate(type = 1)
+nodes_licensee <- df %>% select(licensee, company_region) %>% unique() %>% 
+  rename(node = licensee, region = company_region) %>% 
+  mutate(type = 0)
+nodes <- rbind(nodes_uni, nodes_licensee) %>% 
+  filter(!is.na(node))
+#net <- make_bipartite_graph(nodes$type, edges, directed = F)
+net <- graph_from_data_frame(edges, vertices = nodes, directed = T)
+V(net)$type <- bipartite_mapping(net)$type 
+
+V(net)$deg <- log(igraph::degree(net, mode = "in")+1)+.5
+maxlabel <- as.numeric(names(table(V(net)$deg)[length(table(V(net)$deg))-5]))
+V(net)$label <- ifelse(V(net)$deg > maxlabel, V(net)$name, "")
+V(net)$label.size <- 10
+V(net)$color <- ifelse(V(net)$region == "West" , viridis::viridis(n = 5)[1],
+                ifelse(V(net)$region == "Northeast", viridis::viridis(n = 5)[2],
+                ifelse(V(net)$region == "North Central", viridis::viridis(n = 5)[3],
+                ifelse(V(net)$region == "South", viridis::viridis(n = 5)[4],
+                ifelse(V(net)$region == "International", viridis::viridis(n = 5)[5],      
+                       "grey")))))
+V(net)$label.color <- "darkgray"
+
+V(net)$bw <- betweenness(net)
+V(net)$comp <- igraph::components(net)$membership
+main <- which(table(V(net)$comp) == max(table(V(net)$comp)))[[1]]
+net <- induced_subgraph(net, V(net)$comp == main)
+return(net)
+}
+```
+
+```{r, echo = F}
+net_cereal <- net_by_crop("Cereals")
+net_fruit <- net_by_crop("Fruits & nuts")
+net_oilseed <- net_by_crop("Oilseeds")
+net_veg <- net_by_crop("Vegetables & melons")
+net_root <- net_by_crop("Roots & tubers")
+```
+
+```{r, results = F, echo = F}
+plot_net <- function(net, TITLE){
+  ggraph(net, layout = "stress", bbox = 20) +
+  geom_edge_link(width = 1, alpha = 0.5, color = "gray70") + 
+  geom_node_point(size = V(net)$deg, color = V(net)$color, alpha = 0.5) + 
+  geom_node_text(aes(label = V(net)$label),
+                 size = 4,
+                 color = "black") +
+  theme_graph(base_family = "Arial") +
+  labs(title = TITLE)
+}
+```
+
+```{r, echo = F, out.width = "80%"}
+plot_net(net_cereal, "Cereal crops")
+plot_net(net_fruit, "Fruit and nut crops")
+plot_net(net_veg, "Vegetable crops")
+plot_net(net_oilseed, "Oilseed crops")
+```
+
+
+<!----
 ## Case study: University of California, Davis  
-<!--- * Do a bit of exploring for UC Davis only (Hint: filter for just California). Within UC Davis, revisit the questions above to create a bit of a licensing 'profile' for UC Davis (essentially, tell a story about UC Davis licensing) --->
+<!--- * Do a bit of exploring for UC Davis only (Hint: filter for just California). Within UC Davis, revisit the questions above to create a bit of a licensing 'profile' for UC Davis (essentially, tell a story about UC Davis licensing) 
   
 University of California, Davis is the home institution of our research team, and is also among the top-10 active universities in our data with 210 licenses. Therefore, we take particular interest in California as a case study. Below, we see that California primarily produces fruits and nuts, and we note that all licenses are sold via exclusive licenses.
 
@@ -610,3 +686,5 @@ geo_table <- licenses_ca %>%
 kable(geo_table, col.names = c("Geographic location", "Company size",
                                   "Count of licenses")) %>% kable_styling()
 ```
+
+--->

@@ -36,9 +36,9 @@ colnames(inv_lic)[16] <- "inventor_lastname"
 colnames(inv_lic)[18] <- "inventor_first_initial"
 
 # Can think about eventually cleaning and indexing the sponsor list to match it to our licensee list:
-sponsors <- str_remove_all(tools::toTitleCase(inv_award$Sponsor), '\\.|,')
-sponsors <- sort(unique(sponsors))
-sponsors
+#sponsors <- str_remove_all(tools::toTitleCase(inv_award$Sponsor), '\\.|,')
+#sponsors <- sort(unique(sponsors))
+#sponsors
 
 # This is super 'long' because it takes every award any inventor has ever gotten, and associates it with every plant they've ever bred. Cleaning and playing with time frames here is defnitely something of interest for the future
 inventor_allmoney <- left_join(inv_lic, inv_award)

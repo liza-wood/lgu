@@ -1,49 +1,205 @@
-```{r}
-DT::datatable()
-```
+---
+title: "How does funding affect variety development?"
+subtitle: "Plant breeding awards and varietal development for LGU Agricultural Colleges, 2010?-2020"
+author: "Liza Wood, Adam J. Vera, and Victoria Fletcher"
+date: "`r Sys.Date()`"
+output: html_document
+---
 
-
-```{r}
+```{r setup, include = F}
 library(tidyverse)
-df3 <- read.csv("~/Box/lgu/data_clean/joined_inventions_licenses_awardstotal.csv")
+library(kableExtra)
+path_to_box <- '~/Box/lgu/'
+knitr::opts_chunk$set(echo = F, warning = F, message = F, results = T, fig.align = 'center')
+knitr::opts_knit$set(root.dir = path_to_box)
 ```
 
-* Note: Is the sum the best thing to do in the join to account for time? (DO THIS)
-* Is there a relationship between company size and 'awards money in' to different varieties?  
-* Is there a relationship between license type (Exclusive vs not) and 'awards money in' to different varieties?  
-  * If the crop is sold non-exclusively, how many licensees are there? Can we get a sense of how much money in is then 'redistributed' (broad sense) back into licensees? 
-
-
-Reverse engineer: get just each unique variety and their funding amount (funds associated with breeder) -- need to remove the company info, since that is the dupliate
-
 ```{r}
-df2 <- df3 %>% 
-  select(-c(licensee:size_range_sales)) %>% 
-  unique()
-
-
-```
-
-What are the total funds per each crop category?
-
-```{r}
-df2 %>% 
-  group_by(crop_cat) %>% 
-  summarize(funds_per_crop = sum(total_avg_funds, na.rm = T)) %>% 
-  arrange(-funds_per_crop)
-```
-
-What about average?
-
-```{r}
-df2 %>% 
-  group_by(crop_cat) %>% 
-  summarize(avg_funds_per_crop = mean(total_funds, na.rm = T)) %>% 
-  arrange(-avg_funds_per_crop)
-```
-
-
-```{r}
+df <- read.csv("~/Box/lgu/data_clean/joined_inventions_licenses_awardstotal.csv")
 dft <- read.csv("~/Box/lgu/data_clean/joined_inventions_licenses_awards_timeperiod.csv")
 ```
 
+
+## Introduction   
+
+This report brings together data sources summarized across three other reports ('Who breeds what?', 'Who buys what?', and 'Who funds what?') to track trends in technology transfer between universities and companies. These data include:
+
+1. Licensing data from 25 LGUs, which includes plant varieties licensed, plant breeder, and licensee company, all collected via FOIA requests   
+2. Company database of licensees, collected from the D&B Hoovers database  
+3. Plant variety database of licensed crops, collected from the PVP, USPTO, and GRIN databases  
+4. Plant breeder database of LGU inventors, compiled from the licensing data  
+5. Awards data from 5 LGUs (more forthcoming) summarizing awards to LGU Colleges of Agriculture: the PI receiving the grant, the amount, and the funder  
+6. Forthcoming: Database of funders based on the awards data  
+
+We link these data -- awards, plant varieties, and licenses -- based on the _plant breeder_. For example, let's say Dr. Breeder was awarded 10 grants over the 20-year time period (2000-2020) for a total of \$2 million. Dr. Breeder also developed 15 plant varieties. We can use Dr. Breeder to quantify the 'value' that went into variety development. In a crude way, we do this without any consideration of time. We simply assume \$2 million divided by the 15 varieties values each at about \$133 thousand. We can add in a temporal element, to try to get more precision on the 'value' of certain crops. For this draft/experimental analysis, we categorized the relationship between funding time period and licenses as follows: if funding was awarded 2010 or earlier, we assign the sum of those award values to varieties licensed between 2005-2012 and if funding was awarded between 2011-2020 we assign the sum of those award values to varieties licenses between 2013-2020. This is a temporary approach, particularly because we should be more interested in the time that the plant was released/protected, such as the application for a PVP or PTO plant patent. Currently we have not linked the data this way, so we use this as a temporary measure.  
+
+For the following summaries, we are considering data only from the following five universities: `r unique(df$uni_state)`. These are the universities for which we have fully clean data, and therefore serve as a beta/pilot for this analysis.  
+
+## What are the 'values' of different crops?  
+
+```{r}
+# Here we remove licensee information so that we get just each unique variety and their funding amount (funds associated with breeder) -- need to remove the company info, since that is the duplicate
+variety_funding <- df %>% 
+  select(-c(licensee:size_range_sales)) %>% 
+  unique()
+```
+
+We associated breeders' award amounts with the crops that they breed in order to proxy the 'value' of each variety. For the five universities in this beta analysis, the value of different crops ranges from \$0, where the breeders do not have any associated grants according to our data, to almost \$14 million for a handful of wheat varieties developed by a breeder at University of California, who has received over \$41 million in grants over the last 20 years. 
+
+When we summarize the average 'value' across different crop types, our data shows that cereals are associated with the highest funded breeders, followed by roots, then fruits and nuts. These values are summarized in the table below. 
+
+```{r}
+crop_value <- variety_funding %>% 
+  group_by(crop_cat) %>% 
+  summarize(avg_funds_per_crop = mean(total_avg_funds, na.rm = T)) %>% 
+  arrange(-avg_funds_per_crop)
+
+kable(crop_value, col.names = c("Crop category", "Average 'value' of varietal development")) %>% kable_styling()
+```
+
+## What is the relationship between company size and crop 'value'?
+
+For the licenses in our sample, we see no initial relationship between the size of the company and the 'value' of the crops that they are buying. While the mean crop value is slightly larger for large companies, the median is the same, and both have very large standard deviations. 
+
+```{r, eval=FALSE}
+df %>%
+  select(size_range_sales, total_avg_funds) %>%
+  group_by(size_range_sales, total_avg_funds) %>%
+  filter(!is.na(size_range_sales), !is.na(total_avg_funds)) %>%
+  unique() %>%
+  arrange(total_avg_funds)
+
+# Added by Adam: this was my first attempt that was corrected by Liza to become the chunk below
+```
+
+
+```{r, eval = F}
+df %>% 
+  mutate(funds_mil = total_avg_funds/1000000) %>% 
+  filter(!is.na(size_range_sales), !is.na(total_avg_funds)) %>%
+  ggplot(aes(x = size_range_sales, y = funds_mil)) +
+  geom_boxplot() +
+  ylim(c(0,1)) +
+  labs(x = "Company size", y = "Crop value ($ million)", title = "Company size by value of crop they lciense") +
+  theme_linedraw()
+```
+
+```{r}
+company_value_table <- df %>%
+  select(size_range_sales, total_avg_funds) %>%
+  filter(!is.na(size_range_sales), !is.na(total_avg_funds)) %>%
+  group_by(size_range_sales) %>%
+  summarize(median = median(total_avg_funds),
+            mean = mean(total_avg_funds), 
+            max=max(total_avg_funds), 
+            min=min(total_avg_funds), sd=sd(total_avg_funds))
+
+# Added by Adam: there was very large standard deviations that prove the means to be statistically insignificant at the moment.
+
+kable(company_value_table, col.names = c('Company size', 'Median', 'Mean', 'Max', 'Min', 'SD')) %>% kable_styling()
+```
+
+
+When we further disaggregate by crop, however, we see some variation. No large companies are licensing vegetables, while no small companies are licesning ornamentals. 
+```{r}
+df %>% 
+  mutate(funds_mil = total_avg_funds/1000000) %>% 
+  filter(!is.na(size_range_sales), !is.na(total_avg_funds)) %>%
+  ggplot(aes(x = size_range_sales, y = funds_mil, color = crop_cat)) +
+  geom_boxplot() +
+  ylim(c(0,1)) +
+  labs(x = "Company size", y = "Crop value ($ million)", title = "Company size by value of crop they lciense", color = "Crop") +
+  scale_color_viridis_d() +
+  theme_linedraw()
+```
+
+<!----
+* Is there a relationship between license type (Exclusive vs not) and 'awards money in' to different varieties?  
+  * If the crop is sold non-exclusively, how many licensees are there? Can we get a sense of how much money in is then 'redistributed' (broad sense) back into licensees? 
+
+```{r, eval = F}
+df %>%
+  select(agreement_type, total_avg_funds) %>%
+  group_by(agreement_type, total_avg_funds) %>%
+  count() %>%
+  filter(total_avg_funds != "0", !is.na(agreement_type)) %>%
+  arrange(total_avg_funds)
+
+df %>%
+  group_by(agreement_type) %>%
+  count()
+
+# Added by Adam: Unless an inventor only produces varieties that are exclusive, averaging their funds takes away potential weight given to varieties sold exclusively. This disallows us to know whether an exclusively licensed variety was funded more.
+```
+
+```{r, eval = F}
+df3_nonexcl <- df3 %>%
+  filter(agreement_type == "Non-exclusive license") %>%
+  group_by(variety_name) %>%
+  count()
+
+df3 %>%
+  filter(agreement_type == "Non-exclusive license") %>%
+  mutate(total_avg_funds_per_nonexcl_license <- total_avg_funds / df3_nonexcl$n)
+
+
+# Added by Adam: I want to isolate non-exclusive licenses, count the number of non-exclusive licenses per variety, and divide the total_avg_sales for each variety by the number of non-exclusive licenses.
+```
+--->
+
+## Breaking this down across time
+
+### Adam's approach
+```{r, echo = T}
+# Added by Adam: does funding increase temporally, on average per license?
+years <-  as.Date(df$effective_date, '%Y-%m-%d')
+
+effective_year <- as.numeric(format((as.Date(df$effective_date, '%Y-%m-%d')),'%Y'))
+
+df <- df %>%
+  mutate(effective_year = as.numeric(format((as.Date(effective_date, '%Y-%m-%d')),'%Y')))
+
+df <- df %>%
+  filter(effective_year < 2021) %>%
+  mutate(year_range = case_when(effective_year > 2015 ~ "2016-2020", 
+                                effective_year > 2010 ~ "2011-2015", 
+                                effective_year > 2005 ~ "2006-2010", 
+                                effective_year >= 2000 ~ "2000-2005", 
+                                TRUE ~ "Older")) 
+
+df %>%
+  select(year_range, total_avg_funds) %>%
+  group_by(year_range) %>%
+  filter(!is.na(year_range), !is.na(total_avg_funds)) %>%
+  summarize(mean = mean(total_avg_funds), max=max(total_avg_funds), min=min(total_avg_funds), sd=sd(total_avg_funds))
+
+# I believe this is a start, but I want to then divide the mean total_avg_funds by the number of licenses in each year range to determine the average value of licenses per year range. This could be broken down further by crop type. We could also adjust for inflation if need be.
+
+```
+### Liza's appraoch 
+
+```{r}
+variety_funding_t <- dft %>% 
+  select(-c(licensee:size_range_sales)) %>% 
+  unique()
+
+crop_value_t <- variety_funding_t %>% 
+  filter(!is.na(year_filed_range)) %>% 
+  group_by(crop_cat, year_filed_range) %>% 
+  summarize(avg_funds_per_crop = mean(total_avg_funds, na.rm = T)) %>% 
+  arrange(-avg_funds_per_crop)
+
+kable(crop_value_t, col.names = c("Crop category", "Year range of license", "Average 'value' of varietal development")) %>% kable_styling()
+```
+
+## Next steps  
+
+* Awards data
+  * Continue to clean awards data
+  * Can I also get salary info for breeders? 
+* Innovations
+  * Continue to build out the plant variety licensing ID system including GRIN and others
+  * Match plants in the licensing data to PVP, PTO, GRIN etc. databases so that we have better crop metadata, particularly the year it was filed  
+* Create a funders database. 
+  * Individually identify funders to see if we can line up 'pipelines' of breeding
+  * Classify funders into groupings (government, industry, etc.) to see if certain types of breeders are being funded by certain groups  
