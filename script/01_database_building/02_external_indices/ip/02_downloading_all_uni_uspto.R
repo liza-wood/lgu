@@ -2,6 +2,8 @@ library(tidyverse)
 library(lubridate)
 library(stringr)
 library(patentr)
+
+## SHOULD PROBABLY DELETE THIS SINCE I AM GOING TO RE-SET IT IN PLANT_IP
 setwd("~/Box/lgu/")
 uni_names <- read.csv("data_indices/universities2.csv")
 # https://cran.r-project.org/web/packages/patentr/vignettes/intro.html
@@ -22,8 +24,8 @@ for(i in 2022){
 }
 
 # Map functions
-x = 2020
-y = 1:52
+x = 1976
+y = 1:20
 pt <- data.frame()
 t1 <- Sys.time()
 pt <- map_df(x, ~ map_df(y, function(y) {

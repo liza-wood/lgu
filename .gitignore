@@ -6,6 +6,7 @@ scraping_company_h.R
 
 #data
 data/lgu.RDS
+data/dataverse_files/*
 
 
 # History files

@@ -75,11 +75,20 @@ still_no_abstract <- no_abs_df$id[no_abs_df$abstract == ""]
 
 ## COMPILE THE ABSTRACTS THAT I CAN GET ----
 pp_db$abstract <- ifelse(pp_db$abstract == "", NA, pp_db$abstract)
+
 pp_db <- full_join(pp_db, no_abs_df, by = "id") %>% 
   mutate(abstract = case_when(
     is.na(abstract.x) ~ abstract.y,
     T ~ abstract.x
   )) %>% select(-abstract.x, -abstract.y)
+
+table(is.na(pp_db$id_edited))
+pp_db$id_correct <- ifelse(is.na(pp_db$id_edited), pp_db$id, pp_db$id_edited)
+# We gained one, what happened
+which(duplicated(pp_db$id))
+pp_db <- pp_db[!is.na(pp_db$id),]
+write.csv(pp_db, "data_clean/pp_with_abstract.csv", 
+          row.names = F, fileEncoding = "UTF-8")
 
 set.seed(300)
 pp_random_selection <- sample.int(nrow(pp_db), round(.1*nrow(pp_db)), replace = F)
